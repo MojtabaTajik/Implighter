@@ -52,6 +52,17 @@
       </p>
     </div>
 
+    <div class="field">
+      <label for="summaryPrompt">Summary instructions</label>
+      <textarea id="summaryPrompt" rows="10" style="width: 100%; resize: vertical"></textarea>
+      <p class="hint">
+        Sent as the system prompt when you summarize a page. The page text follows it, so this
+        is where you set format, length and tone. Saved independently of the provider settings —
+        editing it does not require re-verifying a key.
+        <button id="resetPrompt" style="width: auto; padding: 2px 8px; margin-left: 4px">Reset to default</button>
+      </p>
+    </div>
+
     <div class="row">
       <button id="save" class="primary">Verify &amp; save</button>
       <button id="saveAnyway">Save without verifying</button>

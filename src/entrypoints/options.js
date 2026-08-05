@@ -1,4 +1,8 @@
-import { PROVIDERS, providerOf } from "./providers.js";
+import { MSG } from "../shared/messaging.js";
+
+import { providerOf } from "../shared/providers.js";
+import { saveSummaryPrompt } from "../shared/settings.js";
+import { DEFAULT_SUMMARY_PROMPT } from "../features/summarize/prompt.js";
 
 const providerSelect = document.getElementById("provider");
 const modelSelect = document.getElementById("model");
@@ -9,6 +13,8 @@ const keyLink = document.getElementById("keyLink");
 const providerHint = document.getElementById("providerHint");
 const saveButton = document.getElementById("save");
 const saveAnywayButton = document.getElementById("saveAnyway");
+const summaryPromptInput = document.getElementById("summaryPrompt");
+const resetPromptButton = document.getElementById("resetPrompt");
 const statusEl = document.getElementById("status");
 
 const CACHE_NOTE = {
@@ -75,7 +81,13 @@ async function persist({ providerId, model, apiKey }) {
 }
 
 async function load() {
-  const stored = await chrome.storage.local.get(["provider", "model", "keys", "apiKey"]);
+  const stored = await chrome.storage.local.get([
+    "provider",
+    "model",
+    "keys",
+    "apiKey",
+    "summaryPrompt"
+  ]);
   keys = stored.keys || {};
   // Migration from the single-provider build, which stored one bare Anthropic key.
   if (!keys.anthropic && stored.apiKey) keys.anthropic = stored.apiKey;
@@ -83,7 +95,27 @@ async function load() {
   const providerId = stored.provider || "anthropic";
   providerSelect.value = providerId;
   renderProvider(providerId, stored.model);
+
+  summaryPromptInput.value = stored.summaryPrompt || DEFAULT_SUMMARY_PROMPT;
 }
+
+// Saved on edit rather than behind the verify button: the prompt has nothing to
+// verify, and making a prose tweak wait on a network round trip would be absurd.
+let promptSaveTimer = null;
+summaryPromptInput.addEventListener("input", () => {
+  clearTimeout(promptSaveTimer);
+  promptSaveTimer = setTimeout(async () => {
+    await saveSummaryPrompt(summaryPromptInput.value);
+    setStatus("Summary instructions saved.", "ok");
+  }, 600);
+});
+
+resetPromptButton.addEventListener("click", async (event) => {
+  event.preventDefault();
+  summaryPromptInput.value = DEFAULT_SUMMARY_PROMPT;
+  await saveSummaryPrompt(DEFAULT_SUMMARY_PROMPT);
+  setStatus("Summary instructions reset to default.", "ok");
+});
 
 providerSelect.addEventListener("change", () => {
   // Hold on to whatever is typed before swapping the field out from under it.
@@ -115,7 +147,7 @@ saveButton.addEventListener("click", async () => {
   setStatus("Verifying — sending one two-block test request…");
 
   const result = await chrome.runtime.sendMessage({
-    type: "implighter:verify",
+    type: MSG.VERIFY,
     settings
   });
 

@@ -10,20 +10,26 @@
     "https://api.groq.com/*"
   ],
   "background": {
-    "service_worker": "src/background.js",
+    "service_worker": "src/entrypoints/background.js",
     "type": "module"
   },
   "action": {
     "default_title": "implighter",
-    "default_popup": "src/popup.html"
+    "default_popup": "src/entrypoints/popup.html"
   },
-  "options_page": "src/options.html",
+  "options_page": "src/entrypoints/options.html",
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["src/content.js"],
-      "css": ["src/content.css"],
+      "js": ["src/entrypoints/content.js"],
+      "css": ["src/features/highlight/highlight.css"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/features/*", "src/shared/*"],
+      "matches": ["http://*/*", "https://*/*"]
     }
   ]
 }

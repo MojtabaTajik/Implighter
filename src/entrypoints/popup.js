@@ -1,3 +1,5 @@
+import { MSG } from "../shared/messaging.js";
+
 const goalInput = document.getElementById("goal");
 const runButton = document.getElementById("run");
 const clearButton = document.getElementById("clear");
@@ -16,7 +18,7 @@ async function activeTab() {
 
 // Progress pings from the content script arrive here while the popup is open.
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg?.type !== "implighter:status") return;
+  if (msg?.type !== MSG.STATUS) return;
   if (msg.status === "progress") {
     const { done, total } = msg.detail;
     setStatus(`Scoring… ${done}/${total} chunks`);
@@ -37,7 +39,7 @@ chrome.storage.local.get(["lastGoal", "collapse"]).then(({ lastGoal, collapse })
 // an applied page doesn't look identical to opening it on an untouched one.
 (async () => {
   try {
-    const state = await sendToTab({ type: "implighter:state" });
+    const state = await sendToTab({ type: MSG.STATE });
     if (state?.active) {
       // Prefer the goal actually in force on the page over the last one typed.
       if (state.goal) goalInput.value = state.goal;
@@ -56,7 +58,7 @@ chrome.storage.local.get(["lastGoal", "collapse"]).then(({ lastGoal, collapse })
 collapseInput.addEventListener("change", async () => {
   await chrome.storage.local.set({ collapse: collapseInput.checked });
   try {
-    await sendToTab({ type: "implighter:collapse", collapse: collapseInput.checked });
+    await sendToTab({ type: MSG.COLLAPSE, collapse: collapseInput.checked });
   } catch {
     // Nothing painted on this tab yet; the setting applies on the next run.
   }
@@ -90,7 +92,7 @@ runButton.addEventListener("click", async () => {
 
   try {
     const result = await sendToTab({
-      type: "implighter:run",
+      type: MSG.RUN,
       goal,
       collapse: collapseInput.checked
     });
@@ -117,10 +119,23 @@ runButton.addEventListener("click", async () => {
 
 clearButton.addEventListener("click", async () => {
   try {
-    await sendToTab({ type: "implighter:clear" });
+    await sendToTab({ type: MSG.CLEAR });
     setStatus("Cleared.");
     runButton.textContent = "Highlight";
     clearButton.disabled = true;
+  } catch (err) {
+    setStatus(String(err.message || err), true);
+  }
+});
+
+// Summarize is independent of the highlight session — it reads the whole page
+// regardless of what has or hasn't been scored, and needs no goal.
+document.getElementById("summarize").addEventListener("click", async () => {
+  try {
+    await sendToTab({ type: MSG.SUMMARIZE_RUN });
+    // The modal lives on the page and streams into itself; the popup's job ends
+    // here, and it closes so it isn't covering the thing it just opened.
+    window.close();
   } catch (err) {
     setStatus(String(err.message || err), true);
   }
