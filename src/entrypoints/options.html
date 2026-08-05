@@ -13,6 +13,7 @@
       .field { margin-bottom: 14px; }
       .hint { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
       .hint a { color: var(--accent); }
+      .muted { color: var(--muted); font-weight: 400; }
       .row { gap: 8px; }
       #saveAnyway { display: none; }
       .ok { color: #2e7d32; }
@@ -53,13 +54,17 @@
     </div>
 
     <div class="field">
-      <label for="summaryPrompt">Summary instructions</label>
+      <label for="summaryPrompt">Summary instructions <span class="muted">— advanced</span></label>
       <textarea id="summaryPrompt" rows="10" style="width: 100%; resize: vertical"></textarea>
       <p class="hint">
-        Sent as the system prompt when you summarize a page. The page text follows it, so this
-        is where you set format, length and tone. Saved independently of the provider settings —
-        editing it does not require re-verifying a key.
-        <button id="resetPrompt" style="width: auto; padding: 2px 8px; margin-left: 4px">Reset to default</button>
+        The standing instruction for every summary: format, length and tone. You don't need to
+        touch this — the popup's <strong>"Anything to focus on?"</strong> box steers an individual
+        summary, and is added on top of whatever is here. Edit this only to change how summaries
+        are shaped every time.
+        <br />
+        Saved as you type, independently of the provider settings — changing wording doesn't
+        require re-verifying a key.
+        <button id="resetPrompt" style="width: auto; padding: 2px 8px; margin-top: 6px">Reset to default</button>
       </p>
     </div>
 

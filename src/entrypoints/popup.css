@@ -52,11 +52,56 @@ textarea {
   resize: vertical;
 }
 
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.tab {
+  flex: 1;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: var(--border);
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.hint {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.muted { color: var(--muted); font-weight: 400; }
+
+.setup {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.setup strong { font-size: 13px; }
+.setup p { margin: 5px 0 10px; color: var(--muted); font-size: 12px; }
+.setup button { width: 100%; }
+
 .check {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 9px;
+  margin-top: 11px;
   color: var(--fg);
   cursor: pointer;
 }

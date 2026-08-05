@@ -1,10 +1,44 @@
 import { MSG } from "../shared/messaging.js";
 
 const goalInput = document.getElementById("goal");
+const focusInput = document.getElementById("focus");
 const runButton = document.getElementById("run");
 const clearButton = document.getElementById("clear");
 const collapseInput = document.getElementById("collapse");
 const statusEl = document.getElementById("status");
+
+const setupEl = document.getElementById("setup");
+const mainEl = document.getElementById("main");
+const tabs = {
+  highlight: {
+    tab: document.getElementById("tabHighlight"),
+    panel: document.getElementById("panelHighlight"),
+    focus: () => goalInput.focus()
+  },
+  summarize: {
+    tab: document.getElementById("tabSummarize"),
+    panel: document.getElementById("panelSummarize"),
+    focus: () => focusInput.focus()
+  }
+};
+
+function showTab(name) {
+  for (const [key, entry] of Object.entries(tabs)) {
+    const active = key === name;
+    entry.tab.classList.toggle("active", active);
+    entry.tab.setAttribute("aria-selected", String(active));
+    entry.panel.hidden = !active;
+  }
+  chrome.storage.local.set({ lastTab: name });
+  tabs[name].focus();
+}
+
+tabs.highlight.tab.addEventListener("click", () => showTab("highlight"));
+tabs.summarize.tab.addEventListener("click", () => showTab("summarize"));
+
+document.getElementById("setupOpen").addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
+});
 
 function setStatus(text, isError = false) {
   statusEl.textContent = text;
@@ -28,12 +62,21 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-// Restore the last goal so re-running on another page is one click.
-chrome.storage.local.get(["lastGoal", "collapse"]).then(({ lastGoal, collapse }) => {
-  if (lastGoal) goalInput.value = lastGoal;
-  collapseInput.checked = !!collapse;
-  goalInput.focus();
-});
+// Gate the whole UI on having a key. Otherwise a new user's first action is a
+// button that fails with an error naming a provider they have not met yet.
+chrome.storage.local
+  .get(["lastGoal", "lastFocus", "lastTab", "collapse", "provider", "keys", "apiKey"])
+  .then(({ lastGoal, lastFocus, lastTab, collapse, provider, keys, apiKey }) => {
+    const configured = Boolean((keys || {})[provider || "anthropic"] || apiKey);
+    setupEl.hidden = configured;
+    mainEl.hidden = !configured;
+    if (!configured) return;
+
+    if (lastGoal) goalInput.value = lastGoal;
+    if (lastFocus) focusInput.value = lastFocus;
+    collapseInput.checked = !!collapse;
+    showTab(lastTab === "summarize" ? "summarize" : "highlight");
+  });
 
 // Reflect whether this tab has already been processed, so reopening the popup on
 // an applied page doesn't look identical to opening it on an untouched one.
@@ -129,10 +172,13 @@ clearButton.addEventListener("click", async () => {
 });
 
 // Summarize is independent of the highlight session — it reads the whole page
-// regardless of what has or hasn't been scored, and needs no goal.
+// regardless of what has or hasn't been scored, and takes its own optional focus
+// rather than reusing the highlight goal.
 document.getElementById("summarize").addEventListener("click", async () => {
+  const focus = focusInput.value.trim();
+  await chrome.storage.local.set({ lastFocus: focus });
   try {
-    await sendToTab({ type: MSG.SUMMARIZE_RUN });
+    await sendToTab({ type: MSG.SUMMARIZE_RUN, focus });
     // The modal lives on the page and streams into itself; the popup's job ends
     // here, and it closes so it isn't covering the thing it just opened.
     window.close();

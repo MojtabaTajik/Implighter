@@ -7,25 +7,61 @@
   </head>
   <body>
     <h1>implighter</h1>
-    <label for="goal">What are you here to do?</label>
-    <textarea
-      id="goal"
-      rows="4"
-      placeholder="e.g. I want to prepare for a system design interview"
-    ></textarea>
 
-    <label class="check">
-      <input id="collapse" type="checkbox" />
-      Hide the noise instead of dimming it
-    </label>
-
-    <div class="row">
-      <button id="run" class="primary">Highlight</button>
-      <button id="clear">Clear</button>
+    <!-- Shown only when no API key is configured. A new user's first click would
+         otherwise be a button that fails with a message about a provider they
+         have not heard of yet. -->
+    <div id="setup" class="setup" hidden>
+      <strong>One-time setup</strong>
+      <p>Pick a provider and paste an API key, then come back.</p>
+      <button id="setupOpen" class="primary">Open settings</button>
     </div>
 
-    <div class="row">
-      <button id="summarize">Summarize page</button>
+    <div id="main" hidden>
+      <!-- Two features, two panels. Each owns the field that drives it — the goal
+           box used to sit above both buttons, which read as though it fed the
+           summary too. -->
+      <div class="tabs" role="tablist">
+        <button id="tabHighlight" class="tab active" role="tab" aria-selected="true">Highlight</button>
+        <button id="tabSummarize" class="tab" role="tab" aria-selected="false">Summarize</button>
+      </div>
+
+      <section id="panelHighlight" role="tabpanel">
+        <label for="goal">What are you here to do?</label>
+        <textarea
+          id="goal"
+          rows="3"
+          placeholder="e.g. prepare for a system design interview, quick and practical"
+        ></textarea>
+        <p class="hint">Everything that doesn't serve this gets dimmed or hidden.</p>
+
+        <label class="check">
+          <input id="collapse" type="checkbox" />
+          Hide the noise instead of dimming it
+        </label>
+
+        <div class="row">
+          <button id="run" class="primary">Highlight</button>
+          <button id="clear">Clear</button>
+        </div>
+      </section>
+
+      <section id="panelSummarize" role="tabpanel" hidden>
+        <label for="focus">Anything to focus on? <span class="muted">(optional)</span></label>
+        <textarea
+          id="focus"
+          rows="2"
+          placeholder="e.g. just the trade-offs and numbers"
+        ></textarea>
+        <p class="hint">
+          Reads the whole page and streams key points into a panel you can copy.
+          Leave blank for a general summary.
+        </p>
+
+        <div class="row">
+          <button id="summarize" class="primary">Summarize page</button>
+        </div>
+      </section>
     </div>
 
     <p id="status" class="status" role="status"></p>

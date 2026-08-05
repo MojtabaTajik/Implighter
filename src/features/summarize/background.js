@@ -36,7 +36,12 @@ export function registerSummarizePort() {
           apiKey,
           model,
           system: summaryPrompt || DEFAULT_SUMMARY_PROMPT,
-          user: msg.pageText,
+          // The focus line goes after the page text, as the last thing read. It
+          // is a user-level steer, not a replacement for the instructions — the
+          // popup asks for "anything to focus on", not for a system prompt.
+          user: msg.focus
+            ? `${msg.pageText}\n\nFocus especially on: ${msg.focus}`
+            : msg.pageText,
           onDelta: (text) => {
             if (cancelled) return;
             port.postMessage({ type: STREAM.DELTA, text });

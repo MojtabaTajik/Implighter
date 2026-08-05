@@ -199,7 +199,7 @@ function finish(noteText, isError) {
   ui.copy.disabled = !raw.trim();
 }
 
-async function summarize() {
+async function summarize(focus) {
   const modal = openModal();
   const page = buildPageText();
 
@@ -237,13 +237,13 @@ async function summarize() {
     if (ui && !raw) finish("Connection to the extension dropped. Try again.", true);
   });
 
-  port.postMessage({ type: MSG.SUMMARIZE_START, pageText: page.text });
+  port.postMessage({ type: MSG.SUMMARIZE_START, pageText: page.text, focus });
 }
 
 export function initSummarize() {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type !== MSG.SUMMARIZE_RUN) return false;
-    summarize();
+    summarize(msg.focus);
     sendResponse({ ok: true });
     return false;
   });
