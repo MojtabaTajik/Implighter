@@ -231,16 +231,76 @@ third-party action, so a workflow holding `contents: write` carries no supply-ch
 
 ## Layout
 
+Vertical slices: each feature owns its prompt, its worker handlers, its page logic and its
+styles, in one directory. Anything more than one feature needs moves to `shared`.
+
 ```
 manifest.json
 src/
-  providers.js    provider registry — request shapes, score parsing, usage normalising
-  background.js   service worker — owns the keys, dispatches to a provider, verifies setup
-  content.js      DOM extraction, chunking, viewport ordering, painting
-  content.css     highlight / dim styles (light + dark)
-  popup.html/.css/.js
-  options.html/.js
+  entrypoints/          compose features; features never know about each other
+    background.js         registers each slice's worker handlers
+    content.js            classic script that dynamically imports the slices
+    popup.html/.css/.js
+    options.html/.js
+  features/
+    highlight/          goal -> score -> dim, highlight, roll up
+      prompt.js           the scoring rubric — the real tuning surface
+      background.js       classify one chunk; verify a provider config
+      content.js          extraction, chunking, painting, roll-up, observer
+      overlay.js          progress scrim and toast
+      highlight.css       the only styles applied to page DOM
+    summarize/          whole page -> streamed markdown in a modal
+      prompt.js           default summary instruction (user-editable)
+      background.js       port-based streaming handler
+      content.js          page text assembly, modal, copy
+  shared/
+    providers.js        Anthropic / OpenAI / Groq: classify + completeStream
+    extraction.js       DOM -> text blocks, parameterised per feature
+    settings.js         storage shape and its migrations
+    messaging.js        the message vocabulary
+    badge.js            per-tab toolbar state
+    ui/
+      shadow-host.js    shadow root on documentElement
+      markdown.js       escape-then-render, for untrusted model output
+scripts/check.mjs       syntax, manifest, imports, web-accessible resources
 ```
+
+**The dependency runs one way only — `shared` never imports from a feature.** The default
+summary prompt therefore lives in its slice and is applied there, rather than `shared/settings`
+reaching forward for it.
+
+**Why the content entry is a classic script that dynamically imports.** MV3 `content_scripts`
+cannot be ES modules, and listing several files in the manifest's `js` array puts them all in
+one global scope — which defeats slice isolation entirely. Dynamic `import()` of packaged
+modules *does* work from a content script provided they're in `web_accessible_resources`, so
+the entry stays a stub whose only job is to load the real modules. `check.mjs` verifies those
+paths both exist and are web-accessible, since either mistake fails silently at runtime.
+
+## Summarize
+
+Whole page, one request, streamed.
+
+Summarising is **not chunked**, and that asymmetry with highlighting is deliberate:
+classification chunks because verdicts are independent, so 30 blocks at a time is correct
+rather than a compromise. A summary needs the whole page at once or it summarises fragments.
+So it sends one request against a character budget and *says so in the modal* when a page
+exceeds it, rather than silently summarising the first half.
+
+Headings survive into the payload as markdown `#` so the model sees the page's shape instead of
+an undifferentiated wall of paragraphs.
+
+It streams over a `chrome.runtime` port rather than one-shot messaging, which has no way to
+deliver partial results — the difference between watching text appear and staring at a blank box
+for fifteen seconds. Re-render is throttled to one frame to avoid thrashing layout on a long
+summary, and autoscroll only follows if you haven't scrolled up.
+
+**Model output is untrusted.** Page text flows into the prompt, so a hostile page can attempt
+injection to get markup like `<img onerror=...>` into the response — and the modal renders
+inside the page's document, where that would execute in *page* context. Output is HTML-escaped
+first and only then given a fixed set of tags; never the reverse order. Links render as plain
+text, which removes any need to validate `javascript:` and `data:` URLs.
+
+Copy writes the **raw markdown**, not the rendered text — that's what you'd paste into notes.
 
 ## Not built yet
 
