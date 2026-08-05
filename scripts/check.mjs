@@ -102,6 +102,9 @@ if (manifest) {
   for (const [size, path] of Object.entries(manifest.icons || {})) {
     requirePath(path, `manifest.icons["${size}"]`);
   }
+  for (const [size, path] of Object.entries(manifest.action?.default_icon || {})) {
+    requirePath(path, `manifest.action.default_icon["${size}"]`);
+  }
 
   for (const [i, script] of (manifest.content_scripts || []).entries()) {
     for (const file of script.js || []) requirePath(file, `manifest.content_scripts[${i}].js`);
