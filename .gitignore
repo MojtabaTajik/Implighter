@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Build / packaging output — the store upload zip is generated, never committed
+*.zip
+dist/
+build/
+
+# Dependencies, if any tooling is added later
+node_modules/
+
+# Local secrets. No key should ever reach this repo; keys live in
+# chrome.storage.local at runtime, never in a file.
+.env
+.env.*
+*.pem
+*.key

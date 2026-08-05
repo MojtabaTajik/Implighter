@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Important Highlighter (implighter)",
+  "version": "0.1.0",
+  "description": "Give it a goal, and it dims the noise on the page while highlighting what actually matters.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "https://api.groq.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "implighter",
+    "default_popup": "src/popup.html"
+  },
+  "options_page": "src/options.html",
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["src/content.js"],
+      "css": ["src/content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
