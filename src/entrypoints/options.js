@@ -182,4 +182,8 @@ saveAnywayButton.addEventListener("click", async () => {
   setStatus("Saved without verifying. If pages fail to score, come back and verify.");
 });
 
+// Read from the manifest rather than hardcoded — the release workflow asserts the
+// tag matches manifest.version, so this is the number to quote in a bug report.
+document.getElementById("version").textContent = `v${chrome.runtime.getManifest().version}`;
+
 load();

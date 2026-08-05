@@ -151,3 +151,13 @@ a {
   color: var(--muted);
   font-size: 12px;
 }
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.links a:hover { color: var(--accent); }
+.links .sep { color: var(--muted); opacity: .5; }

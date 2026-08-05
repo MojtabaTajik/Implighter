@@ -65,7 +65,17 @@
     </div>
 
     <p id="status" class="status" role="status"></p>
-    <a id="options" href="#">Settings</a>
+
+    <!-- GitHub earns a place here because it is where you report that scoring went
+         wrong. Anything purely decorative stays in Settings — this is the surface
+         you pass through every time you use the extension. -->
+    <footer class="links">
+      <a id="options" href="#">Settings</a>
+      <span class="sep">·</span>
+      <a href="https://github.com/MojtabaTajik/Implighter/issues" target="_blank" rel="noreferrer noopener">
+        Report an issue
+      </a>
+    </footer>
 
     <script type="module" src="popup.js"></script>
   </body>
