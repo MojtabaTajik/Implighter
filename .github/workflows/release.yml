@@ -1,0 +1,67 @@
+name: Release
+
+# Tag a version to cut a release:  git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # required to create the release and attach the zip
+
+jobs:
+  package:
+    name: Package for the Chrome Web Store
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # --strict here: warnings that are fine to carry on main must not ship in
+      # something you intend to upload. A missing 128px icon is an outright
+      # store rejection, and finding that out after upload wastes a review cycle.
+      - name: Check (strict)
+        run: node scripts/check.mjs --strict
+
+      - name: Verify tag matches manifest version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST=$(node -p "require('./manifest.json').version")
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME implies version $TAG but manifest.json says $MANIFEST."
+            exit 1
+          fi
+          echo "version=$MANIFEST" >> "$GITHUB_ENV"
+
+      # Zips the *contents*, so manifest.json sits at the archive root. Zipping
+      # the containing folder instead is the classic upload rejection.
+      - name: Build zip
+        run: |
+          zip -r "implighter-${version}.zip" . \
+            -x '.git/*' \
+            -x '.github/*' \
+            -x 'scripts/*' \
+            -x '.gitignore' \
+            -x 'README.md' \
+            -x '*.zip' \
+            -x '*.DS_Store'
+          echo "--- archive contents ---"
+          unzip -l "implighter-${version}.zip"
+
+      - name: Fail if manifest is not at the archive root
+        run: |
+          unzip -l "implighter-${version}.zip" | grep -qE ' manifest\.json$' \
+            || { echo "::error::manifest.json is not at the zip root."; exit 1; }
+
+      # gh is preinstalled on the runner, so this needs no third-party action —
+      # one less supply-chain dependency in a workflow that holds contents:write.
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "implighter-${version}.zip" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes

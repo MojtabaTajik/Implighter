@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Read-only: this workflow inspects the tree and nothing more.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Syntax and references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No install step: the checker has no dependencies, which is the point.
+      # Warnings (a missing store icon, say) do not fail a push — only a release.
+      - name: Check syntax, manifest references and HTML assets
+        run: node scripts/check.mjs
+
+      - name: Confirm no key-shaped strings are committed
+        run: |
+          if git grep -nEI "sk-ant-[a-zA-Z0-9_-]{10,}|sk-[a-zA-Z0-9]{20,}|gsk_[a-zA-Z0-9]{10,}" -- . ; then
+            echo "::error::A string resembling an API key is committed. Remove it and rotate the key."
+            exit 1
+          fi
+          echo "No key-shaped strings found."
