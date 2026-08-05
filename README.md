@@ -199,6 +199,36 @@ script never receives it and never calls `api.anthropic.com`. That keeps the key
 reach of page JavaScript, but `chrome.storage.local` is **not encrypted** — anything with
 read access to the browser profile directory can recover it. Use a dedicated key.
 
+## CI and releasing
+
+There is **no build step**, deliberately. Chrome loads `src/*.js` directly, so the published
+artifact is the source. Bundling or minifying would only invite requests for reviewable source
+during store review.
+
+`node scripts/check.mjs` runs on every push and pull request. It has no dependencies — nothing
+to install, nothing to keep current, no lockfile in a repo that otherwise has none. It checks
+that every `.js` parses (as either an ES module or a classic script, since the codebase has
+both), that every path in `manifest.json` resolves, and that the CSS and JS each HTML page
+references actually exist. A renamed file otherwise leaves a page that loads blank with only a
+console error to explain it. CI also greps the tree for key-shaped strings.
+
+Warnings don't fail CI — a permanently red pipeline is one nobody reads. `--strict` promotes
+them to failures, and the release workflow uses it: a missing 128px icon shouldn't block a
+push, but it's an outright store rejection and must block a version you intend to upload.
+
+To cut a release:
+
+```sh
+# bump "version" in manifest.json first — the workflow asserts they match
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+That runs the strict check, verifies the tag against `manifest.json`, zips the repository
+*contents* so `manifest.json` sits at the archive root (zipping the containing folder instead
+is the classic upload rejection — the workflow asserts placement rather than assuming it), and
+attaches the zip to a GitHub release. It uses the runner's preinstalled `gh` rather than a
+third-party action, so a workflow holding `contents: write` carries no supply-chain dependency.
+
 ## Layout
 
 ```
