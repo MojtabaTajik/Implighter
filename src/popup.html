@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>implighter</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h1>implighter</h1>
+    <label for="goal">What are you here to do?</label>
+    <textarea
+      id="goal"
+      rows="4"
+      placeholder="e.g. I want to prepare for a system design interview"
+    ></textarea>
+
+    <label class="check">
+      <input id="collapse" type="checkbox" />
+      Hide the noise instead of dimming it
+    </label>
+
+    <div class="row">
+      <button id="run" class="primary">Highlight</button>
+      <button id="clear">Clear</button>
+    </div>
+
+    <p id="status" class="status" role="status"></p>
+    <a id="options" href="#">Settings</a>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
