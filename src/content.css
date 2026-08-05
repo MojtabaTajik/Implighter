@@ -1,0 +1,38 @@
+/* Everything is scoped under .implighter-active on <html> so a single class
+   toggle turns the whole effect off without touching individual blocks. */
+
+html.implighter-active .implighter-dim {
+  opacity: 0.25 !important;
+  filter: grayscale(0.7);
+  transition: opacity 0.18s ease, filter 0.18s ease;
+}
+
+html.implighter-active .implighter-support {
+  opacity: 1;
+  transition: opacity 0.18s ease;
+}
+
+html.implighter-active .implighter-core {
+  background: rgba(255, 213, 74, 0.3);
+  box-shadow: 0 0 0 2px rgba(240, 180, 20, 0.55);
+  border-radius: 3px;
+  transition: background 0.18s ease;
+}
+
+html.implighter-active .implighter-pending {
+  opacity: 0.6;
+  transition: opacity 0.18s ease;
+}
+
+/* Collapse mode: dimmed blocks stop taking vertical space, so a long page
+   actually gets short instead of just getting faint. */
+html.implighter-active.implighter-collapse .implighter-dim {
+  display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  html.implighter-active .implighter-core {
+    background: rgba(255, 213, 74, 0.18);
+    box-shadow: 0 0 0 2px rgba(255, 205, 60, 0.4);
+  }
+}
