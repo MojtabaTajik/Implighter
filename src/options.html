@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>implighter settings</title>
+    <link rel="stylesheet" href="popup.css" />
+    <style>
+      body { width: 480px; }
+      select, input {
+        width: 100%; padding: 7px 8px; border: 1px solid var(--border);
+        border-radius: 6px; background: transparent; color: inherit; font: inherit;
+      }
+      .field { margin-bottom: 14px; }
+      .hint { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+      .hint a { color: var(--accent); }
+      .row { gap: 8px; }
+      #saveAnyway { display: none; }
+      .ok { color: #2e7d32; }
+    </style>
+  </head>
+  <body>
+    <h1>implighter settings</h1>
+
+    <div class="field">
+      <label for="provider">Provider</label>
+      <select id="provider">
+        <option value="anthropic">Anthropic</option>
+        <option value="openai">OpenAI</option>
+        <option value="groq">Groq</option>
+      </select>
+      <p class="hint" id="providerHint"></p>
+    </div>
+
+    <div class="field">
+      <label for="model">Model</label>
+      <select id="model"></select>
+      <input id="customModel" type="text" placeholder="model id" style="margin-top: 6px; display: none" />
+      <p class="hint">
+        Model ids change faster than this list does. Pick <strong>Other…</strong> and type one
+        if the model you want isn't here.
+      </p>
+    </div>
+
+    <div class="field" id="keyField">
+      <label for="apiKey">API key</label>
+      <input id="apiKey" type="password" autocomplete="off" />
+      <p class="hint">
+        Keys are kept per provider, so switching the dropdown doesn't discard the other one.
+        Stored unencrypted in this browser profile — anything that can read the profile
+        directory can read the key. Use a key scoped to this purpose and rotate it if the
+        machine is shared. <a id="keyLink" href="#" target="_blank" rel="noreferrer">Get a key</a>
+      </p>
+    </div>
+
+    <div class="row">
+      <button id="save" class="primary">Verify &amp; save</button>
+      <button id="saveAnyway">Save without verifying</button>
+    </div>
+    <p id="status" class="status" role="status"></p>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
