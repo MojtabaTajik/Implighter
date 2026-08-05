@@ -115,7 +115,62 @@ if (manifest) {
   }
 }
 
-// --- 3. HTML asset references resolve ---------------------------------------
+// --- 3. Dynamic imports resolve and are web-accessible ----------------------
+// The content entry pulls feature modules in via chrome.runtime.getURL(). Those
+// paths are strings, so a rename breaks them silently — and if the target isn't
+// listed in web_accessible_resources, Chrome blocks the import at runtime with an
+// error buried in the page console rather than the extensions page.
+
+const GET_URL = /chrome\.runtime\.getURL\(\s*["']([^"']+)["']\s*\)/g;
+
+function webAccessible(path) {
+  for (const entry of manifest?.web_accessible_resources || []) {
+    for (const pattern of entry.resources || []) {
+      const re = new RegExp(`^${pattern.split("*").map(escapeRe).join(".*")}$`);
+      if (re.test(path)) return true;
+    }
+  }
+  return false;
+}
+
+function escapeRe(s) {
+  return s.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+}
+
+walk(join(root, "src"), (file) => {
+  if (!file.endsWith(".js")) return;
+  const source = readFileSync(file, "utf8");
+  for (const [, path] of source.matchAll(GET_URL)) {
+    if (!existsSync(join(root, path))) {
+      fail(`${relative(root, file)} imports "${path}", which does not exist.`);
+    } else if (!webAccessible(path)) {
+      fail(
+        `${relative(root, file)} imports "${path}", which is not matched by ` +
+          `web_accessible_resources. Chrome will block the import at runtime.`
+      );
+    }
+  }
+});
+
+// --- 4. Static import specifiers resolve ------------------------------------
+// Slices import across directories by relative path. Syntax checking cannot see
+// this: a module with a wrong specifier parses perfectly and fails only when the
+// browser tries to load it.
+
+const IMPORT_FROM = /(?:^|\n)\s*(?:import|export)[\s\S]*?from\s+["'](\.[^"']+)["']/g;
+
+walk(join(root, "src"), (file) => {
+  if (!file.endsWith(".js")) return;
+  const source = readFileSync(file, "utf8");
+  for (const [, specifier] of source.matchAll(IMPORT_FROM)) {
+    const target = join(dirname(file), specifier);
+    if (!existsSync(target)) {
+      fail(`${relative(root, file)} imports "${specifier}", which does not resolve.`);
+    }
+  }
+});
+
+// --- 5. HTML asset references resolve ---------------------------------------
 // popup.html and options.html point at sibling CSS and JS. A renamed file leaves
 // a page that loads blank with only a console error to explain it.
 
