@@ -41,6 +41,18 @@ label {
   font-size: 12px;
 }
 
+select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+}
+
 textarea {
   width: 100%;
   padding: 7px 8px;

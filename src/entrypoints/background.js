@@ -3,10 +3,12 @@
 
 import { MSG } from "../shared/messaging.js";
 import { setBadge, registerBadgeCleanup } from "../shared/badge.js";
+import { registerTriggers } from "../shared/triggers.js";
 import { classifyChunk, verifySettings } from "../features/highlight/background.js";
 import { registerSummarizePort } from "../features/summarize/background.js";
 
 registerBadgeCleanup();
+registerTriggers();
 registerSummarizePort();
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

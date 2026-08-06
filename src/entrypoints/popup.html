@@ -14,6 +14,10 @@
     <div id="setup" class="setup" hidden>
       <strong>One-time setup</strong>
       <p>Pick a provider and paste an API key, then come back.</p>
+      <p>
+        No key yet? <strong>Groq</strong> has a free tier with no card required — the quickest
+        way to try this. Anthropic gives the sharpest results.
+      </p>
       <button id="setupOpen" class="primary">Open settings</button>
     </div>
 
@@ -33,6 +37,13 @@
           rows="3"
           placeholder="e.g. prepare for a system design interview, quick and practical"
         ></textarea>
+
+        <!-- Goals get retyped on every page otherwise. Populated only once there
+             is something to recall. -->
+        <select id="recentGoals" hidden>
+          <option value="">Recent goals…</option>
+        </select>
+
         <p class="hint">Everything that doesn't serve this gets dimmed or hidden.</p>
 
         <label class="check">
@@ -43,6 +54,10 @@
         <div class="row">
           <button id="run" class="primary">Highlight</button>
           <button id="clear">Clear</button>
+        </div>
+
+        <div class="row">
+          <button id="copyKept" disabled>Copy what was kept</button>
         </div>
       </section>
 

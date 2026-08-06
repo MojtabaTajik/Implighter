@@ -9,6 +9,7 @@ export const MSG = {
   COLLAPSE: "implighter:collapse",
   CLASSIFY: "implighter:classify",
   STATUS: "implighter:status",
+  EXPORT_KEPT: "implighter:export-kept",
 
   // summarize — a long-running stream, so it uses a port rather than one-shot
   // request/response messaging.

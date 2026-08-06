@@ -4,6 +4,7 @@
 import {
   collectBlocks,
   hasClaimedAncestor,
+  normalize,
   SKIP_ANCESTOR_SELECTOR
 } from "../../shared/extraction.js";
 import { MSG } from "../../shared/messaging.js";
@@ -343,7 +344,38 @@ async function scoreBlocks(goal, blocks) {
       `A flat 0 for cache read across repeated runs means the prefix is being invalidated.`
   );
 
-  return { chunks: chunks.length, errors, hitRate };
+  return { chunks: chunks.length, errors, hitRate, inputTokens: total };
+}
+
+// Exports what survived scoring as markdown. This is only possible because the
+// verdicts are already recorded per block — no second model call, no re-reading
+// the page. Headings keep their level so the export retains the page's shape.
+function exportKept() {
+  if (!session) return null;
+
+  const kept = session.blocks.filter((b) => {
+    const verdict = b.el.getAttribute(HANDLED_ATTR);
+    return verdict === "1" || verdict === "2";
+  });
+  if (!kept.length) return null;
+
+  const lines = kept.map((b) => {
+    const text = normalize(b.el.innerText || b.text);
+    if (b.level) return `${"#".repeat(b.level)} ${text}`;
+    // Core blocks are the ones the user actually came for; marking them keeps
+    // that distinction in the exported file rather than flattening it away.
+    return b.el.getAttribute(HANDLED_ATTR) === "2" ? `**${text}**` : text;
+  });
+
+  return [
+    `# ${document.title}`,
+    "",
+    `> Goal: ${session.goal}`,
+    `> Source: ${location.href}`,
+    `> Kept ${kept.length} of ${session.blocks.length} blocks`,
+    "",
+    lines.join("\n\n")
+  ].join("\n");
 }
 
 async function run(goal, collapse) {
@@ -366,7 +398,7 @@ async function run(goal, collapse) {
     // is what actually starts incremental work, and it starts at the end.
     session = { goal, blocks: [...blocks], nextId: blocks.length, rounds: 0 };
 
-    const { chunks, errors, hitRate } = await scoreBlocks(goal, blocks);
+    const { chunks, errors, hitRate, inputTokens } = await scoreBlocks(goal, blocks);
     if (errors.length === chunks) {
       clearHighlights();
       overlayHide();
@@ -388,6 +420,7 @@ async function run(goal, collapse) {
       rolled,
       chunks,
       hitRate,
+      inputTokens,
       failed: errors.length
     };
   } finally {
@@ -491,6 +524,15 @@ export function initHighlight() {
     if (msg?.type === MSG.CLEAR) {
       clearHighlights();
       sendResponse({ ok: true });
+      return false;
+    }
+    if (msg?.type === MSG.EXPORT_KEPT) {
+      const markdown = exportKept();
+      sendResponse(
+        markdown
+          ? { ok: true, markdown }
+          : { ok: false, error: "Nothing kept on this page yet — run Highlight first." }
+      );
       return false;
     }
     if (msg?.type === MSG.STATE) {

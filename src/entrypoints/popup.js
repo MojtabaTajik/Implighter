@@ -2,6 +2,8 @@ import { MSG } from "../shared/messaging.js";
 
 const goalInput = document.getElementById("goal");
 const focusInput = document.getElementById("focus");
+const recentGoalsSelect = document.getElementById("recentGoals");
+const copyKeptButton = document.getElementById("copyKept");
 const runButton = document.getElementById("run");
 const clearButton = document.getElementById("clear");
 const collapseInput = document.getElementById("collapse");
@@ -65,8 +67,8 @@ chrome.runtime.onMessage.addListener((msg) => {
 // Gate the whole UI on having a key. Otherwise a new user's first action is a
 // button that fails with an error naming a provider they have not met yet.
 chrome.storage.local
-  .get(["lastGoal", "lastFocus", "lastTab", "collapse", "provider", "keys", "apiKey"])
-  .then(({ lastGoal, lastFocus, lastTab, collapse, provider, keys, apiKey }) => {
+  .get(["lastGoal", "lastFocus", "lastTab", "collapse", "provider", "keys", "apiKey", "recentGoals"])
+  .then(({ lastGoal, lastFocus, lastTab, collapse, provider, keys, apiKey, recentGoals }) => {
     const configured = Boolean((keys || {})[provider || "anthropic"] || apiKey);
     setupEl.hidden = configured;
     mainEl.hidden = !configured;
@@ -74,6 +76,7 @@ chrome.storage.local
 
     if (lastGoal) goalInput.value = lastGoal;
     if (lastFocus) focusInput.value = lastFocus;
+    renderRecentGoals(recentGoals);
     collapseInput.checked = !!collapse;
     showTab(lastTab === "summarize" ? "summarize" : "highlight");
   });
@@ -88,6 +91,7 @@ chrome.storage.local
       if (state.goal) goalInput.value = state.goal;
       setStatus(`Applied to this page — kept ${state.kept} of ${state.total}, cut ${state.cut}%.`);
       runButton.textContent = "Re-run";
+      copyKeptButton.disabled = false;
     } else {
       clearButton.disabled = true;
     }
@@ -96,6 +100,33 @@ chrome.storage.local
     clearButton.disabled = true;
   }
 })();
+
+const MAX_RECENT_GOALS = 8;
+
+function renderRecentGoals(goals = []) {
+  recentGoalsSelect.hidden = goals.length === 0;
+  for (const option of [...recentGoalsSelect.options].slice(1)) option.remove();
+  for (const goal of goals) {
+    const option = document.createElement("option");
+    option.value = goal;
+    // Truncated for the dropdown; the full text still lands in the textarea.
+    option.textContent = goal.length > 48 ? `${goal.slice(0, 47)}…` : goal;
+    recentGoalsSelect.append(option);
+  }
+}
+
+async function rememberGoal(goal) {
+  const { recentGoals = [] } = await chrome.storage.local.get("recentGoals");
+  const next = [goal, ...recentGoals.filter((g) => g !== goal)].slice(0, MAX_RECENT_GOALS);
+  await chrome.storage.local.set({ recentGoals: next });
+}
+
+recentGoalsSelect.addEventListener("change", () => {
+  if (!recentGoalsSelect.value) return;
+  goalInput.value = recentGoalsSelect.value;
+  recentGoalsSelect.selectedIndex = 0;
+  goalInput.focus();
+});
 
 // Toggling applies live — no need to re-score a page that's already painted.
 collapseInput.addEventListener("change", async () => {
@@ -130,6 +161,7 @@ runButton.addEventListener("click", async () => {
   // provider-named error. Duplicating the check would mean two places to keep in
   // step with the provider registry.
   await chrome.storage.local.set({ lastGoal: goal });
+  await rememberGoal(goal);
   runButton.disabled = true;
   setStatus("Reading the page…");
 
@@ -144,12 +176,16 @@ runButton.addEventListener("click", async () => {
         ? ` ${result.failed} chunk(s) failed and were left alone.`
         : "";
       const rolled = result.rolled ? ` ${result.rolled} section(s) rolled up.` : "";
-      const cache = ` Cache ${result.hitRate ?? 0}% read.`;
+      const tokens = result.inputTokens
+        ? ` ${result.inputTokens.toLocaleString()} input tokens,`
+        : "";
+      const cache = `${tokens} cache ${result.hitRate ?? 0}% read.`;
       setStatus(
         `Kept ${result.kept} of ${result.blocks} blocks — cut ${result.cut}%.${rolled}${cache}${failed}`
       );
       runButton.textContent = "Re-run";
       clearButton.disabled = false;
+      copyKeptButton.disabled = false;
     } else {
       setStatus(result?.error || "Something went wrong.", true);
     }
@@ -166,6 +202,7 @@ clearButton.addEventListener("click", async () => {
     setStatus("Cleared.");
     runButton.textContent = "Highlight";
     clearButton.disabled = true;
+    copyKeptButton.disabled = true;
   } catch (err) {
     setStatus(String(err.message || err), true);
   }
@@ -182,6 +219,22 @@ document.getElementById("summarize").addEventListener("click", async () => {
     // The modal lives on the page and streams into itself; the popup's job ends
     // here, and it closes so it isn't covering the thing it just opened.
     window.close();
+  } catch (err) {
+    setStatus(String(err.message || err), true);
+  }
+});
+
+// The one export nobody else can offer: the verdicts are already recorded per
+// block, so this is a read of existing state rather than a second model call.
+copyKeptButton.addEventListener("click", async () => {
+  try {
+    const result = await sendToTab({ type: MSG.EXPORT_KEPT });
+    if (!result?.ok) {
+      setStatus(result?.error || "Nothing to copy.", true);
+      return;
+    }
+    await navigator.clipboard.writeText(result.markdown);
+    setStatus("Kept content copied as markdown.");
   } catch (err) {
     setStatus(String(err.message || err), true);
   }

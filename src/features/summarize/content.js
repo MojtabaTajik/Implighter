@@ -72,7 +72,12 @@ const STYLES = `
     border: 1px solid #e2b23c; background: #e2b23c; color: #1a1608;
     font: 600 13px/1 inherit;
   }
-  button.copy:disabled { opacity: .5; cursor: default; }
+  button.copy:disabled, button.download:disabled { opacity: .5; cursor: default; }
+  button.download {
+    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.18); background: transparent; color: #e9ecf1;
+    font: 600 13px/1 inherit;
+  }
 
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
   @media (prefers-reduced-motion: reduce) {
@@ -92,6 +97,7 @@ const MARKUP = `
     <div class="body"><p class="placeholder">Reading the page…</p></div>
     <footer>
       <span class="note"></span>
+      <button class="download" disabled>Download</button>
       <button class="copy" disabled>Copy</button>
     </footer>
   </div>
@@ -105,7 +111,14 @@ let renderQueued = false;
 
 // Headings carry structure that plain paragraphs lose, and a model summarises far
 // better when it can see the page's shape rather than an undifferentiated wall.
-function buildPageText() {
+function buildPageText(selectionOnly) {
+  if (selectionOnly) {
+    const selected = String(window.getSelection() || "").trim();
+    if (selected) {
+      return { text: selected.slice(0, MAX_PAGE_CHARS), truncated: false, blocks: 0, selection: true };
+    }
+  }
+
   const blocks = collectBlocks({
     budget: SUMMARY_BLOCK_BUDGET,
     maxChars: SUMMARY_BLOCK_CHARS
@@ -161,6 +174,7 @@ function openModal() {
     body: root.querySelector(".body"),
     note: root.querySelector(".note"),
     copy: root.querySelector(".copy"),
+    download: root.querySelector(".download"),
     dot: root.querySelector(".dot")
   };
 
@@ -187,6 +201,20 @@ function openModal() {
     }
   });
 
+  ui.download.addEventListener("click", () => {
+    // Object URL rather than a data: URI — a long summary can exceed the URL
+    // length limits some browsers enforce on data URIs.
+    const slug = location.hostname.replace(/^www\./, "").replace(/[^a-z0-9]+/gi, "-");
+    const stamp = new Date().toISOString().slice(0, 10);
+    const url = URL.createObjectURL(new Blob([raw], { type: "text/markdown" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `summary-${slug}-${stamp}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    ui.note.textContent = "Downloaded.";
+  });
+
   requestAnimationFrame(() => host.classList.add("visible"));
   return ui;
 }
@@ -197,21 +225,27 @@ function finish(noteText, isError) {
   ui.note.textContent = noteText;
   ui.note.classList.toggle("error", !!isError);
   ui.copy.disabled = !raw.trim();
+  ui.download.disabled = !raw.trim();
 }
 
-async function summarize(focus) {
+async function summarize(focus, selectionOnly) {
   const modal = openModal();
-  const page = buildPageText();
+  const page = buildPageText(selectionOnly);
 
   if (!page.text.trim()) {
-    finish("Found no readable text on this page.", true);
+    finish(
+      selectionOnly ? "Nothing selected on this page." : "Found no readable text on this page.",
+      true
+    );
     modal.body.innerHTML = "";
     return;
   }
 
   modal.note.textContent = page.truncated
     ? `Page is long — summarising the first ${Math.round(MAX_PAGE_CHARS / 1000)}k characters of ${page.blocks} blocks.`
-    : `${page.blocks} blocks sent.`;
+    : page.selection
+      ? "Summarising your selection."
+      : `${page.blocks} blocks sent.`;
   modal.body.innerHTML = '<p class="placeholder">Summarising…</p>';
 
   // The port name must match what the worker listens for — distinct from the
@@ -243,7 +277,7 @@ async function summarize(focus) {
 export function initSummarize() {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type !== MSG.SUMMARIZE_RUN) return false;
-    summarize(msg.focus);
+    summarize(msg.focus, msg.selectionOnly);
     sendResponse({ ok: true });
     return false;
   });
