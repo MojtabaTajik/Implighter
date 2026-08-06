@@ -3,14 +3,25 @@
   "name": "Important Highlighter (implighter)",
   "version": "0.1.0",
   "description": "Give it a goal, and it dims the noise on the page while highlighting what actually matters.",
-  "permissions": ["storage", "activeTab", "contextMenus"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "contextMenus"
+  ],
   "commands": {
     "run-highlight": {
-      "suggested_key": { "default": "Ctrl+Shift+Y", "mac": "Command+Shift+Y" },
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      },
       "description": "Highlight this page for your last goal"
     },
     "run-summarize": {
-      "suggested_key": { "default": "Ctrl+Shift+U", "mac": "Command+Shift+U" },
+      "suggested_key": {
+        "default": "Ctrl+Shift+U",
+        "mac": "Command+Shift+U"
+      },
       "description": "Summarize this page"
     }
   },
@@ -39,18 +50,16 @@
     }
   },
   "options_page": "src/entrypoints/options.html",
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["src/entrypoints/content.js"],
-      "css": ["src/features/highlight/highlight.css"],
-      "run_at": "document_idle"
-    }
-  ],
   "web_accessible_resources": [
     {
-      "resources": ["src/features/*", "src/shared/*"],
-      "matches": ["http://*/*", "https://*/*"]
+      "resources": [
+        "src/features/*",
+        "src/shared/*"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
     }
   ]
 }

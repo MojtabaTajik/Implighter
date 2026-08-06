@@ -3,6 +3,7 @@
 // beyond the message names.
 
 import { MSG } from "./messaging.js";
+import { ensureInjected } from "./injector.js";
 
 const MENU = {
   HIGHLIGHT: "implighter-highlight",
@@ -18,10 +19,11 @@ async function activeTab() {
 async function send(tabId, message) {
   if (tabId == null) return;
   try {
+    await ensureInjected(tabId);
     await chrome.tabs.sendMessage(tabId, message);
   } catch {
-    // No content script here — a restricted page, or a tab opened before the
-    // extension was installed. Nothing useful to say from a background context.
+    // A restricted origin, most likely. There is no UI surface to report this
+    // from in a shortcut or context-menu flow, so it stays silent here.
   }
 }
 

@@ -11,6 +11,11 @@
 (async () => {
   const load = (path) => import(chrome.runtime.getURL(path));
 
+  // Guard against double injection: entry points call ensureInjected on every
+  // invocation, and a second run would register every listener twice.
+  if (window.__implighterLoaded) return;
+  window.__implighterLoaded = true;
+
   try {
     const [highlight, summarize] = await Promise.all([
       load("src/features/highlight/content.js"),
@@ -19,6 +24,15 @@
 
     highlight.initHighlight();
     summarize.initSummarize();
+
+    // Registered last, so a ready probe only succeeds once the features behind
+    // it can actually answer.
+    const { MSG } = await load("src/shared/messaging.js");
+    chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+      if (msg?.type !== MSG.PING) return false;
+      sendResponse({ ok: true });
+      return false;
+    });
   } catch (err) {
     // A failure here means no feature works on this page, and it is otherwise
     // silent — the popup would just report "reload this page".

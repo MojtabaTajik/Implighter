@@ -1,4 +1,5 @@
 import { MSG } from "../shared/messaging.js";
+import { ensureInjected } from "../shared/injector.js";
 
 const goalInput = document.getElementById("goal");
 const focusInput = document.getElementById("focus");
@@ -186,13 +187,11 @@ collapseInput.addEventListener("change", async () => {
 async function sendToTab(message) {
   const tab = await activeTab();
   if (!tab?.id) throw new Error("No active tab.");
-  try {
-    return await chrome.tabs.sendMessage(tab.id, message);
-  } catch {
-    // The content script is injected at document_idle, so tabs opened before
-    // the extension was installed or updated have no listener yet.
-    throw new Error("Reload this page, then try again.");
-  }
+  // Injection happens on demand, so there is no longer any such thing as a tab
+  // that was open "before the extension was installed" — the old reload-first
+  // papercut disappeared with the blanket content script.
+  await ensureInjected(tab.id);
+  return chrome.tabs.sendMessage(tab.id, message);
 }
 
 runButton.addEventListener("click", async () => {

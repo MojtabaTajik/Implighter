@@ -10,8 +10,8 @@ it reads the page you're on, highlights the parts that serve that goal, and dims
 3. Click the extension icon → **Settings** → paste an Anthropic API key
 4. Open a content-heavy page, click the icon, type a goal, hit **Highlight**
 
-Tabs that were already open when you installed or reloaded the extension have no content
-script yet — reload those tabs once.
+No reload needed on tabs that were already open — the content script is injected on demand
+when you actually invoke something.
 
 ## How it handles the context problem
 
@@ -268,6 +268,23 @@ scripts/check.mjs       syntax, manifest, imports, web-accessible resources
 **The dependency runs one way only — `shared` never imports from a feature.** The default
 summary prompt therefore lives in its slice and is applied there, rather than `shared/settings`
 reaching forward for it.
+
+**Nothing runs until you invoke it.** There is no `content_scripts` entry in the manifest.
+The script is injected with `chrome.scripting.executeScript` when you use the popup, a shortcut
+or a context menu, under `activeTab`.
+
+That matters for one reason above all: a `content_scripts` entry matching `http://*/*` earns the
+install warning *"Read and change all your data on all websites"* — the biggest drop-off point on
+a store listing, and a slower review. `activeTab` grants one tab, only after the user acts, and
+carries **no install warning at all**. The remaining warning names three API hosts, which is
+accurate and explicable.
+
+It also deleted a longstanding papercut: "reload this page first" existed only because
+`document_idle` injection never happened on tabs open before install.
+
+`ensureInjected()` is idempotent, polls for readiness rather than trusting `executeScript` to
+resolve after the dynamic imports finish, and dedupes concurrent calls — the popup fires two
+capability probes the moment it opens, and both need the script.
 
 **Why the content entry is a classic script that dynamically imports.** MV3 `content_scripts`
 cannot be ES modules, and listing several files in the manifest's `js` array puts them all in

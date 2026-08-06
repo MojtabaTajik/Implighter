@@ -155,6 +155,24 @@ walk(join(root, "src"), (file) => {
   }
 });
 
+// --- 3b. Extension-relative path literals resolve ---------------------------
+// With no content_scripts entry in the manifest, the only record of which files
+// get injected is a string constant inside injector.js — and a constant is not
+// reachable by matching the call site. Checking every path-shaped string literal
+// catches that, plus any other hardcoded reference to a packaged file.
+
+const PATH_LITERAL = /["'](((?:src|icons)\/[\w./-]+\.(?:js|css|png|html)))["']/g;
+
+walk(join(root, "src"), (file) => {
+  if (!file.endsWith(".js")) return;
+  const source = readFileSync(file, "utf8");
+  for (const [, path] of source.matchAll(PATH_LITERAL)) {
+    if (!existsSync(join(root, path))) {
+      fail(`${relative(root, file)} references the packaged file "${path}", which does not exist.`);
+    }
+  }
+});
+
 // --- 4. Static import specifiers resolve ------------------------------------
 // Slices import across directories by relative path. Syntax checking cannot see
 // this: a module with a wrong specifier parses perfectly and fails only when the

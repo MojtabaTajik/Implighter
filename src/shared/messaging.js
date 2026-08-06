@@ -19,6 +19,7 @@ export const MSG = {
   SUMMARIZE_START: "implighter:summarize:start",
 
   // shared
+  PING: "implighter:ping",   // is the content script loaded and listening?
   BADGE: "implighter:badge",
   VERIFY: "implighter:verify"
 };
