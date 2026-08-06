@@ -8,6 +8,9 @@
 Thumbs.db
 Desktop.ini
 
+# Local agent/tooling state
+.claude/
+
 # Editors
 .vscode/
 .idea/

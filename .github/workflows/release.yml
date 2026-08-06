@@ -47,6 +47,8 @@ jobs:
             -x 'README.md' \
             -x '*.zip' \
             -x 'design/*' \
+            -x 'docs/*' \
+            -x '.claude/*' \
             -x '*.DS_Store'
           echo "--- archive contents ---"
           unzip -l "implighter-${version}.zip"
