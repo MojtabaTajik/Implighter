@@ -39,6 +39,8 @@ const STYLES = `
   .track { margin-top: 11px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.13); overflow: hidden; }
   .fill { height: 100%; width: 0%; background: #e2b23c; border-radius: 2px; transition: width .2s ease; }
   .detail { margin-top: 8px; color: #a7aeba; font-size: 12px; }
+  .detail.error { color: #ff8a8a; }
+  .dot.error { background: #ff8a8a; animation: none; }
   .panel.corner .goal, .panel.corner .track { display: none; }
   .panel.corner .detail { margin-top: 3px; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
@@ -90,6 +92,8 @@ export function overlayShow({ mode, goal, detail }) {
   el.goal.textContent = goal || "";
   el.detail.textContent = detail || "";
   el.fill.style.width = "0%";
+  el.dot.classList.remove("error");
+  el.detail.classList.remove("error");
   el.dot.style.animationPlayState = "running";
 
   // Force a frame so the opacity transition runs on first show.
@@ -108,6 +112,22 @@ export function overlayFinish(text) {
   ui.detail.textContent = text;
   ui.dot.style.animationPlayState = "paused";
   hideTimer = setTimeout(overlayHide, 1600);
+}
+
+// The popup closes as soon as a run starts, so this is the only place a failure
+// can be reported. Held longer than a success — an error is worth reading.
+export function overlayError(text) {
+  const el = ensure();
+  el.panel.classList.remove("corner");
+  el.panel.classList.add("center");
+  el.scrim.style.display = "";
+  el.fill.style.width = "0%";
+  el.dot.classList.add("error");
+  el.detail.classList.add("error");
+  el.detail.textContent = text;
+  el.dot.style.animationPlayState = "paused";
+  requestAnimationFrame(() => el.host.classList.add("visible"));
+  hideTimer = setTimeout(overlayHide, 6000);
 }
 
 export function overlayHide() {

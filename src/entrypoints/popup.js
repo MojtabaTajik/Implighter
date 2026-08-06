@@ -198,30 +198,19 @@ runButton.addEventListener("click", async () => {
   setStatus("Reading the page…");
 
   try {
-    // The display mode is read from storage by the content script, so it is not
-    // passed here — one source of truth, and it applies live to painted tabs.
-    const result = await sendToTab({ type: MSG.RUN, goal });
-    if (result?.ok) {
-      const failed = result.failed
-        ? ` ${result.failed} chunk(s) failed and were left alone.`
-        : "";
-      const rolled = result.rolled ? ` ${result.rolled} section(s) rolled up.` : "";
-      const tokens = result.inputTokens
-        ? ` ${result.inputTokens.toLocaleString()} input tokens,`
-        : "";
-      const cache = `${tokens} cache ${result.hitRate ?? 0}% read.`;
-      setStatus(
-        `Kept ${result.kept} of ${result.blocks} blocks — cut ${result.cut}%.${rolled}${cache}${failed}`
-      );
-      runButton.textContent = "Re-run";
-      clearButton.disabled = false;
-      copyKeptButton.disabled = false;
-    } else {
-      setStatus(result?.error || "Something went wrong.", true);
-    }
+    const tab = await activeTab();
+    if (!tab?.id) throw new Error("No active tab.");
+
+    // Injection is awaited because it fails fast and its errors — a restricted
+    // page, say — are worth showing here. The run itself is not: it takes many
+    // seconds, and holding the popup open for it left it sitting there until the
+    // user clicked away. The in-page overlay reports progress, the result, and
+    // now failures too, so there is nothing left for the popup to stay open for.
+    await ensureInjected(tab.id);
+    chrome.tabs.sendMessage(tab.id, { type: MSG.RUN, goal }).catch(() => {});
+    window.close();
   } catch (err) {
     setStatus(String(err.message || err), true);
-  } finally {
     runButton.disabled = false;
   }
 });

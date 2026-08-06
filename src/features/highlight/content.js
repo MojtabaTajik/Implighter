@@ -8,7 +8,13 @@ import {
   SKIP_ANCESTOR_SELECTOR
 } from "../../shared/extraction.js";
 import { MSG } from "../../shared/messaging.js";
-import { overlayShow, overlayProgress, overlayFinish, overlayHide } from "./overlay.js";
+import {
+  overlayShow,
+  overlayProgress,
+  overlayFinish,
+  overlayHide,
+  overlayError
+} from "./overlay.js";
 
 const CHUNK_SIZE = 30;          // blocks per API call
 const MAX_BLOCK_CHARS = 400;    // enough to judge relevance; see extraction.js
@@ -399,8 +405,9 @@ async function run(goal) {
 
     const blocks = collectBlocks({ budget: MAX_BLOCKS, maxChars: MAX_BLOCK_CHARS, skip: isTagged });
     if (!blocks.length) {
-      overlayHide();
-      return { ok: false, error: "Found no readable text blocks on this page." };
+      const error = "Found no readable text on this page.";
+      overlayError(error);
+      return { ok: false, error };
     }
 
     // Established before scoring so sessionStats() works throughout. The observer
@@ -410,7 +417,7 @@ async function run(goal) {
     const { chunks, errors, hitRate, inputTokens } = await scoreBlocks(goal, blocks);
     if (errors.length === chunks) {
       clearHighlights();
-      overlayHide();
+      overlayError(errors[0]);
       return { ok: false, error: errors[0] };
     }
 
