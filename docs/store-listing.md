@@ -28,49 +28,89 @@ Highlight what matters for your goal, dim the rest, and summarize pages or YouTu
 **Detailed description**
 
 ```
-Most pages bury what you need. implighter finds it.
+Most pages bury what you need under everything else. implighter finds it.
 
 Tell it why you're on the page — "prepare for a system design interview, quick and
-practical" — and it reads the page, highlights the parts that serve that goal, and dims or
-hides everything else. The same article gives different results for different goals, because
-relevance depends on what you came for.
+practical" — and it reads the page, highlights the parts that serve that goal, and
+dims or hides the rest. The same article gives different results for different
+goals, because relevance depends on what you came for. This is not a generic
+"important sentences" highlighter.
 
-WHAT IT DOES
 
-• Highlights for your goal, not generic "importance". Marketing copy, author bios, newsletter
-  pitches and comment threads fade out.
-• Hides dead sections whole. A comment thread loses its usernames, timestamps and Reply links
-  too, not just the comments.
-• Keeps working as the page grows. Content loaded by "Show all comments" or infinite scroll is
-  scored as it arrives.
-• Summarizes any page into key points you can copy or download as Markdown.
-• Summarizes YouTube videos from the transcript, with timestamps you click to jump straight to
-  the moment.
-• Exports what survived as Markdown — a goal-filtered version of the page.
+HIGHLIGHTING
+
+• Scores every block of text against your goal, not against generic importance.
+  Marketing copy, author bios, newsletter pitches and comment threads fade out.
+
+• Three display modes. Dim the noise, hide it outright, or keep only the
+  highlights. Headings always survive, so you never lose your place.
+
+• Removes dead sections whole. A comment thread loses its usernames, timestamps
+  and Reply links too — not just the comments.
+
+• Keeps working as the page grows. Content loaded by "Show all comments" or by
+  infinite scroll is scored as it arrives.
+
+• Copy what survived as Markdown — a goal-filtered version of the page, ready to
+  paste into your notes.
+
+
+SUMMARIES
+
+• Summarize any page into an overview, key points, and anything worth acting on.
+  Copy it or download it as Markdown.
+
+• Summarize a YouTube video from its transcript, with timestamps you click to jump
+  straight to the moment. Reads the transcript through your own YouTube session,
+  so it works on anything you can watch.
+
+• Summarize just a text selection from the right-click menu.
+
+• Both summary prompts are editable, so the format and tone are yours.
+
 
 BRING YOUR OWN API KEY
 
-implighter has no server and no subscription. It talks directly to Anthropic, OpenAI or Groq
-using your own API key, so you pay the provider for what you use and nothing else. Groq has a
-free tier if you want to try it without a card.
+implighter has no server and no subscription. It talks directly to Anthropic,
+OpenAI or Groq using your own API key, so you pay the provider for what you use
+and nothing else.
+
+You will need a key before it does anything. Groq has a free tier with no card
+required if you want to try it first; Anthropic gives the sharpest results.
+
 
 PRIVACY
 
-Nothing runs until you invoke it. There is no analytics, no telemetry, and no account. Page
-text goes to the provider you chose and nowhere else. Your key stays in your browser.
+Nothing runs until you invoke it. There is no content script sitting on every page
+you visit — the extension activates only when you click it, and only on that tab.
+
+No analytics. No telemetry. No account. Page text goes to the AI provider you
+chose and nowhere else, and your API key never leaves your browser except to reach
+that provider.
+
 
 OPEN SOURCE
 
-Every line is readable at github.com/MojtabaTajik/Implighter
+Every line is readable at github.com/MojtabaTajik/Implighter — including the
+prompts that decide what counts as relevant.
 ```
 
-**Screenshots** — 1280×800 or 640×400, 1–5. Suggested, in order:
+**Screenshots** — must be exactly 1280×800 or 640×400, 1–5.
 
-1. A cluttered article before and after, side by side — the clearest single image
-2. The popup with a goal typed in
-3. A summary modal mid-stream
-4. A YouTube video summary showing clickable timestamps
-5. The settings Provider tab
+Capture at exactly 2x the target (2560×1600) and resize 2:1, or text goes soft: DevTools →
+Cmd+Shift+M → set 1280×800, DPR 2 → Cmd+Shift+P → "Capture screenshot".
+
+In order:
+
+1. The popup with a goal typed, over a page showing both highlighted and dimmed text. The only
+   image that conveys the actual idea — a goal in, a filtered page out. Use Dim rather than
+   Hide, so what was removed is visible *as* removed.
+2. A YouTube summary with its clickable timestamps — the thing no competitor does.
+3. Scoring in progress over a dimmed page.
+
+Before/after side by side is tempting and does not work at this size: 1280×800 shows about
+three paragraphs, and once content is hidden the "after" shows different text entirely. The
+whole-page shrink only reads on a full-page capture, which is illegible when scaled down.
 
 ---
 
