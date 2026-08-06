@@ -199,6 +199,16 @@ script never receives it and never calls `api.anthropic.com`. That keeps the key
 reach of page JavaScript, but `chrome.storage.local` is **not encrypted** — anything with
 read access to the browser profile directory can recover it. Use a dedicated key.
 
+## Publishing
+
+`PRIVACY.md` is the policy, and its raw GitHub URL is what the store listing points at — being
+version-controlled means its history is public, which is itself a reasonable privacy signal.
+
+`docs/store-listing.md` holds every field the submission form asks for, written out to paste:
+description, permission justifications, and the data-usage disclosures. That tab is what delays
+or rejects submissions, so the answers are given verbatim rather than left to be improvised at
+2am.
+
 ## CI and releasing
 
 There is **no build step**, deliberately. Chrome loads `src/*.js` directly, so the published
