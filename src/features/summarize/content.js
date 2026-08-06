@@ -5,6 +5,7 @@ import { collectBlocks } from "../../shared/extraction.js";
 import { MSG, STREAM } from "../../shared/messaging.js";
 import { createShadowHost } from "../../shared/ui/shadow-host.js";
 import { renderMarkdown } from "../../shared/ui/markdown.js";
+import { isWatchPage, getTranscript, timestampToSeconds } from "./youtube.js";
 
 // Summarising needs far more of each paragraph than scoring does. 400 chars is
 // ample to judge relevance but would truncate every long paragraph mid-sentence
@@ -60,6 +61,12 @@ const STYLES = `
   .body pre { background: rgba(0,0,0,.32); padding: 10px 12px; border-radius: 7px; overflow-x: auto; }
   .body pre code { background: none; padding: 0; }
   .placeholder { color: #8d94a1; }
+  .seek {
+    border: 0; padding: 0 3px; border-radius: 4px; cursor: pointer;
+    background: rgba(226,178,60,.16); color: #e2b23c;
+    font: inherit; font-variant-numeric: tabular-nums;
+  }
+  .seek:hover { background: rgba(226,178,60,.3); }
 
   footer {
     display: flex; align-items: center; gap: 10px;
@@ -108,6 +115,7 @@ let port = null;
 let raw = "";
 let escHandler = null;
 let renderQueued = false;
+let currentKind = "page";
 
 // Headings carry structure that plain paragraphs lose, and a model summarises far
 // better when it can see the page's shape rather than an undifferentiated wall.
@@ -146,8 +154,42 @@ function scheduleRender() {
     const atBottom =
       ui.body.scrollHeight - ui.body.scrollTop - ui.body.clientHeight < 40;
     ui.body.innerHTML = renderMarkdown(raw);
+    if (currentKind === "transcript") linkifyTimestamps(ui.body);
     if (atBottom) ui.body.scrollTop = ui.body.scrollHeight;
   });
+}
+
+const TIMESTAMP = /\b(\d{1,2}:\d{2}(?::\d{2})?)\b/g;
+
+// Only for transcripts: a bare "12:34" in an article is a time of day, not a
+// seek target, and turning it into a button there would be wrong.
+function linkifyTimestamps(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  while (walker.nextNode()) {
+    if (walker.currentNode.parentElement?.closest("button, pre, code")) continue;
+    if (TIMESTAMP.test(walker.currentNode.nodeValue)) targets.push(walker.currentNode);
+    TIMESTAMP.lastIndex = 0;
+  }
+
+  for (const node of targets) {
+    const fragment = document.createDocumentFragment();
+    let cursor = 0;
+    const value = node.nodeValue;
+    for (const match of value.matchAll(TIMESTAMP)) {
+      const seconds = timestampToSeconds(match[1]);
+      if (seconds == null) continue;
+      fragment.append(value.slice(cursor, match.index));
+      const button = document.createElement("button");
+      button.className = "seek";
+      button.textContent = match[1];
+      button.dataset.seconds = String(seconds);
+      fragment.append(button);
+      cursor = match.index + match[0].length;
+    }
+    fragment.append(value.slice(cursor));
+    node.replaceWith(fragment);
+  }
 }
 
 function closeModal() {
@@ -177,6 +219,18 @@ function openModal() {
     download: root.querySelector(".download"),
     dot: root.querySelector(".dot")
   };
+
+  // Delegated: the body is re-rendered on every streamed frame, so per-button
+  // listeners would be lost.
+  ui.body.addEventListener("click", (event) => {
+    const button = event.target.closest?.(".seek");
+    if (!button) return;
+    const video = document.querySelector("video");
+    if (!video) return;
+    video.currentTime = Number(button.dataset.seconds);
+    video.play?.();
+    closeModal();
+  });
 
   root.querySelector(".close").addEventListener("click", closeModal);
   root.querySelector(".backdrop").addEventListener("click", closeModal);
@@ -228,9 +282,24 @@ function finish(noteText, isError) {
   ui.download.disabled = !raw.trim();
 }
 
-async function summarize(focus, selectionOnly) {
+async function summarize(focus, { selectionOnly = false, kind = "page" } = {}) {
+  currentKind = kind;
   const modal = openModal();
-  const page = buildPageText(selectionOnly);
+
+  let page;
+  if (kind === "transcript") {
+    modal.body.innerHTML = '<p class="placeholder">Opening the transcript…</p>';
+    try {
+      const transcript = await getTranscript();
+      page = { text: transcript.text.slice(0, MAX_PAGE_CHARS), truncated: transcript.text.length > MAX_PAGE_CHARS, blocks: transcript.count, title: transcript.title };
+    } catch (err) {
+      finish(String(err.message || err), true);
+      modal.body.innerHTML = "";
+      return;
+    }
+  } else {
+    page = buildPageText(selectionOnly);
+  }
 
   if (!page.text.trim()) {
     finish(
@@ -245,6 +314,8 @@ async function summarize(focus, selectionOnly) {
     ? `Page is long — summarising the first ${Math.round(MAX_PAGE_CHARS / 1000)}k characters of ${page.blocks} blocks.`
     : page.selection
       ? "Summarising your selection."
+      : kind === "transcript"
+      ? `${page.blocks} transcript segments — click any timestamp to jump.`
       : `${page.blocks} blocks sent.`;
   modal.body.innerHTML = '<p class="placeholder">Summarising…</p>';
 
@@ -271,13 +342,20 @@ async function summarize(focus, selectionOnly) {
     if (ui && !raw) finish("Connection to the extension dropped. Try again.", true);
   });
 
-  port.postMessage({ type: MSG.SUMMARIZE_START, pageText: page.text, focus });
+  port.postMessage({ type: MSG.SUMMARIZE_START, pageText: page.text, focus, kind });
 }
 
 export function initSummarize() {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    // Answered live rather than cached: YouTube is an SPA, and the popup asks
+    // every time it opens, so navigating between a video and the home page is
+    // reflected without needing to watch for route changes.
+    if (msg?.type === MSG.CAPABILITIES) {
+      sendResponse({ ok: true, transcript: isWatchPage() });
+      return false;
+    }
     if (msg?.type !== MSG.SUMMARIZE_RUN) return false;
-    summarize(msg.focus, msg.selectionOnly);
+    summarize(msg.focus, { selectionOnly: msg.selectionOnly, kind: msg.kind });
     sendResponse({ ok: true });
     return false;
   });

@@ -15,7 +15,8 @@ export async function loadSettings() {
     "model",
     "keys",
     "apiKey",
-    "summaryPrompt"
+    "summaryPrompt",
+    "transcriptPrompt"
   ]);
 
   const providerId = stored.provider || DEFAULT_PROVIDER;
@@ -32,7 +33,10 @@ export async function loadSettings() {
     model: stored.model || provider.defaultModel,
     apiKey: keys[providerId],
     keys,
-    summaryPrompt: stored.summaryPrompt // may be undefined; the slice defaults it
+    // Both may be undefined; the slice that owns them applies its own default,
+    // since shared never imports from a feature.
+    summaryPrompt: stored.summaryPrompt,
+    transcriptPrompt: stored.transcriptPrompt
   };
 }
 
@@ -42,4 +46,8 @@ export async function saveProviderSettings({ providerId, model, keys }) {
 
 export async function saveSummaryPrompt(summaryPrompt) {
   await chrome.storage.local.set({ summaryPrompt });
+}
+
+export async function saveTranscriptPrompt(transcriptPrompt) {
+  await chrome.storage.local.set({ transcriptPrompt });
 }

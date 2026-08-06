@@ -76,6 +76,19 @@
       </p>
     </div>
 
+    <div class="field">
+      <label for="transcriptPrompt">Video summary instructions <span class="muted">— advanced</span></label>
+      <textarea id="transcriptPrompt" rows="10" style="width: 100%; resize: vertical"></textarea>
+      <p class="hint">
+        Used instead of the above when summarizing a YouTube transcript. A transcript is a
+        different medium — spoken, unstructured, and carrying timestamps an article never has —
+        so one instruction cannot serve both without being vague enough to serve neither.
+        Timestamps it cites become clickable in the summary.
+        <br />
+        <button id="resetTranscriptPrompt" style="width: auto; padding: 2px 8px; margin-top: 6px">Reset to default</button>
+      </p>
+    </div>
+
     <div class="row">
       <button id="save" class="primary">Verify &amp; save</button>
       <button id="saveAnyway">Save without verifying</button>

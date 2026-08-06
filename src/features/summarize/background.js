@@ -7,7 +7,7 @@
 
 import { loadSettings } from "../../shared/settings.js";
 import { MSG, STREAM } from "../../shared/messaging.js";
-import { DEFAULT_SUMMARY_PROMPT } from "./prompt.js";
+import { DEFAULT_SUMMARY_PROMPT, DEFAULT_TRANSCRIPT_PROMPT } from "./prompt.js";
 
 export function registerSummarizePort() {
   chrome.runtime.onConnect.addListener((port) => {
@@ -24,7 +24,15 @@ export function registerSummarizePort() {
       if (msg?.type !== MSG.SUMMARIZE_START) return;
 
       try {
-        const { provider, model, apiKey, summaryPrompt } = await loadSettings();
+        const settings = await loadSettings();
+        const { provider, model, apiKey } = settings;
+
+        // A transcript is a different medium, so it gets its own instruction —
+        // spoken, unstructured, and carrying timestamps an article never has.
+        const system =
+          msg.kind === "transcript"
+            ? settings.transcriptPrompt || DEFAULT_TRANSCRIPT_PROMPT
+            : settings.summaryPrompt || DEFAULT_SUMMARY_PROMPT;
 
         if (provider.needsKey && !apiKey) {
           throw new Error(
@@ -35,7 +43,7 @@ export function registerSummarizePort() {
         await provider.completeStream({
           apiKey,
           model,
-          system: summaryPrompt || DEFAULT_SUMMARY_PROMPT,
+          system,
           // The focus line goes after the page text, as the last thing read. It
           // is a user-level steer, not a replacement for the instructions — the
           // popup asks for "anything to focus on", not for a system prompt.

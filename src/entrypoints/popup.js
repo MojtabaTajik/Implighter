@@ -4,6 +4,7 @@ const goalInput = document.getElementById("goal");
 const focusInput = document.getElementById("focus");
 const recentGoalsSelect = document.getElementById("recentGoals");
 const copyKeptButton = document.getElementById("copyKept");
+const videoFocusInput = document.getElementById("videoFocus");
 const runButton = document.getElementById("run");
 const clearButton = document.getElementById("clear");
 const collapseInput = document.getElementById("collapse");
@@ -21,10 +22,16 @@ const tabs = {
     tab: document.getElementById("tabSummarize"),
     panel: document.getElementById("panelSummarize"),
     focus: () => focusInput.focus()
+  },
+  transcript: {
+    tab: document.getElementById("tabTranscript"),
+    panel: document.getElementById("panelTranscript"),
+    focus: () => videoFocusInput.focus()
   }
 };
 
 function showTab(name) {
+  if (tabs[name]?.tab.hidden) name = "highlight";
   for (const [key, entry] of Object.entries(tabs)) {
     const active = key === name;
     entry.tab.classList.toggle("active", active);
@@ -37,6 +44,7 @@ function showTab(name) {
 
 tabs.highlight.tab.addEventListener("click", () => showTab("highlight"));
 tabs.summarize.tab.addEventListener("click", () => showTab("summarize"));
+tabs.transcript.tab.addEventListener("click", () => showTab("transcript"));
 
 document.getElementById("setupOpen").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
@@ -67,8 +75,8 @@ chrome.runtime.onMessage.addListener((msg) => {
 // Gate the whole UI on having a key. Otherwise a new user's first action is a
 // button that fails with an error naming a provider they have not met yet.
 chrome.storage.local
-  .get(["lastGoal", "lastFocus", "lastTab", "collapse", "provider", "keys", "apiKey", "recentGoals"])
-  .then(({ lastGoal, lastFocus, lastTab, collapse, provider, keys, apiKey, recentGoals }) => {
+  .get(["lastGoal", "lastFocus", "lastTab", "collapse", "provider", "keys", "apiKey", "recentGoals", "lastVideoFocus"])
+  .then(({ lastGoal, lastFocus, lastTab, collapse, provider, keys, apiKey, recentGoals, lastVideoFocus }) => {
     const configured = Boolean((keys || {})[provider || "anthropic"] || apiKey);
     setupEl.hidden = configured;
     mainEl.hidden = !configured;
@@ -76,6 +84,7 @@ chrome.storage.local
 
     if (lastGoal) goalInput.value = lastGoal;
     if (lastFocus) focusInput.value = lastFocus;
+    if (lastVideoFocus) videoFocusInput.value = lastVideoFocus;
     renderRecentGoals(recentGoals);
     collapseInput.checked = !!collapse;
     showTab(lastTab === "summarize" ? "summarize" : "highlight");
@@ -100,6 +109,28 @@ chrome.storage.local
     clearButton.disabled = true;
   }
 })();
+
+// The Video tab only exists where it can work. Asked on every popup open rather
+// than cached, so YouTube's client-side navigation needs no special handling.
+(async () => {
+  try {
+    const caps = await sendToTab({ type: MSG.CAPABILITIES });
+    if (caps?.transcript) tabs.transcript.tab.hidden = false;
+  } catch {
+    // No content script here; the tab simply stays hidden.
+  }
+})();
+
+document.getElementById("summarizeVideo").addEventListener("click", async () => {
+  const focus = videoFocusInput.value.trim();
+  await chrome.storage.local.set({ lastVideoFocus: focus });
+  try {
+    await sendToTab({ type: MSG.SUMMARIZE_RUN, focus, kind: "transcript" });
+    window.close();
+  } catch (err) {
+    setStatus(String(err.message || err), true);
+  }
+});
 
 const MAX_RECENT_GOALS = 8;
 

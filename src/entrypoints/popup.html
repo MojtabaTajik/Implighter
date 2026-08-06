@@ -28,6 +28,8 @@
       <div class="tabs" role="tablist">
         <button id="tabHighlight" class="tab active" role="tab" aria-selected="true">Highlight</button>
         <button id="tabSummarize" class="tab" role="tab" aria-selected="false">Summarize</button>
+        <!-- Revealed only on a YouTube watch page; the popup asks the tab on open. -->
+        <button id="tabTranscript" class="tab" role="tab" aria-selected="false" hidden>Video</button>
       </div>
 
       <section id="panelHighlight" role="tabpanel">
@@ -75,6 +77,23 @@
 
         <div class="row">
           <button id="summarize" class="primary">Summarize page</button>
+        </div>
+      </section>
+
+      <section id="panelTranscript" role="tabpanel" hidden>
+        <label for="videoFocus">Anything to focus on? <span class="muted">(optional)</span></label>
+        <textarea
+          id="videoFocus"
+          rows="2"
+          placeholder="e.g. only the benchmark results"
+        ></textarea>
+        <p class="hint">
+          Reads this video's transcript through your own YouTube session, then summarizes it
+          with timestamps you can click to jump straight to the moment.
+        </p>
+
+        <div class="row">
+          <button id="summarizeVideo" class="primary">Summarize video</button>
         </div>
       </section>
     </div>

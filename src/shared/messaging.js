@@ -13,6 +13,7 @@ export const MSG = {
 
   // summarize — a long-running stream, so it uses a port rather than one-shot
   // request/response messaging.
+  CAPABILITIES: "implighter:capabilities",     // popup -> content: what can this page do?
   SUMMARIZE_RUN: "implighter:summarize:run",   // popup -> content: open the modal
   SUMMARIZE_PORT: "implighter:summarize",      // content <-> worker: the stream
   SUMMARIZE_START: "implighter:summarize:start",

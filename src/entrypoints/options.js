@@ -1,8 +1,11 @@
 import { MSG } from "../shared/messaging.js";
 
 import { providerOf } from "../shared/providers.js";
-import { saveSummaryPrompt } from "../shared/settings.js";
-import { DEFAULT_SUMMARY_PROMPT } from "../features/summarize/prompt.js";
+import { saveSummaryPrompt, saveTranscriptPrompt } from "../shared/settings.js";
+import {
+  DEFAULT_SUMMARY_PROMPT,
+  DEFAULT_TRANSCRIPT_PROMPT
+} from "../features/summarize/prompt.js";
 
 const providerSelect = document.getElementById("provider");
 const modelSelect = document.getElementById("model");
@@ -15,6 +18,8 @@ const saveButton = document.getElementById("save");
 const saveAnywayButton = document.getElementById("saveAnyway");
 const summaryPromptInput = document.getElementById("summaryPrompt");
 const resetPromptButton = document.getElementById("resetPrompt");
+const transcriptPromptInput = document.getElementById("transcriptPrompt");
+const resetTranscriptPromptButton = document.getElementById("resetTranscriptPrompt");
 const statusEl = document.getElementById("status");
 
 const CACHE_NOTE = {
@@ -86,7 +91,8 @@ async function load() {
     "model",
     "keys",
     "apiKey",
-    "summaryPrompt"
+    "summaryPrompt",
+    "transcriptPrompt"
   ]);
   keys = stored.keys || {};
   // Migration from the single-provider build, which stored one bare Anthropic key.
@@ -97,25 +103,35 @@ async function load() {
   renderProvider(providerId, stored.model);
 
   summaryPromptInput.value = stored.summaryPrompt || DEFAULT_SUMMARY_PROMPT;
+  transcriptPromptInput.value = stored.transcriptPrompt || DEFAULT_TRANSCRIPT_PROMPT;
 }
 
 // Saved on edit rather than behind the verify button: the prompt has nothing to
 // verify, and making a prose tweak wait on a network round trip would be absurd.
-let promptSaveTimer = null;
-summaryPromptInput.addEventListener("input", () => {
-  clearTimeout(promptSaveTimer);
-  promptSaveTimer = setTimeout(async () => {
-    await saveSummaryPrompt(summaryPromptInput.value);
-    setStatus("Summary instructions saved.", "ok");
-  }, 600);
-});
+function autosave(input, save, label) {
+  let timer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      await save(input.value);
+      setStatus(`${label} saved.`, "ok");
+    }, 600);
+  });
+}
 
-resetPromptButton.addEventListener("click", async (event) => {
-  event.preventDefault();
-  summaryPromptInput.value = DEFAULT_SUMMARY_PROMPT;
-  await saveSummaryPrompt(DEFAULT_SUMMARY_PROMPT);
-  setStatus("Summary instructions reset to default.", "ok");
-});
+function resetTo(button, input, value, save, label) {
+  button.addEventListener("click", async (event) => {
+    event.preventDefault();
+    input.value = value;
+    await save(value);
+    setStatus(`${label} reset to default.`, "ok");
+  });
+}
+
+autosave(summaryPromptInput, saveSummaryPrompt, "Summary instructions");
+autosave(transcriptPromptInput, saveTranscriptPrompt, "Video summary instructions");
+resetTo(resetPromptButton, summaryPromptInput, DEFAULT_SUMMARY_PROMPT, saveSummaryPrompt, "Summary instructions");
+resetTo(resetTranscriptPromptButton, transcriptPromptInput, DEFAULT_TRANSCRIPT_PROMPT, saveTranscriptPrompt, "Video summary instructions");
 
 providerSelect.addEventListener("change", () => {
   // Hold on to whatever is typed before swapping the field out from under it.
