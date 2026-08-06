@@ -1,13 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Important Highlighter (implighter)",
+  "name": "implighter",
+  "short_name": "implighter",
   "version": "0.1.0",
-  "description": "Give it a goal, and it dims the noise on the page while highlighting what actually matters.",
+  "description": "Highlight what matters for your goal, dim the rest, and summarize pages or YouTube videos with AI.",
   "permissions": [
     "storage",
     "activeTab",
     "scripting",
     "contextMenus"
+  ],
+  "host_permissions": [
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "https://api.groq.com/*"
   ],
   "commands": {
     "run-highlight": {
@@ -25,11 +31,6 @@
       "description": "Summarize this page"
     }
   },
-  "host_permissions": [
-    "https://api.anthropic.com/*",
-    "https://api.openai.com/*",
-    "https://api.groq.com/*"
-  ],
   "background": {
     "service_worker": "src/entrypoints/background.js",
     "type": "module"
