@@ -48,6 +48,9 @@ jobs:
             -x '*.zip' \
             -x 'design/*' \
             -x 'docs/*' \
+            -x 'index.html' \
+            -x 'assets/*' \
+            -x '.nojekyll' \
             -x 'SECURITY.md' \
             -x '.claude/*' \
             -x '*.DS_Store'

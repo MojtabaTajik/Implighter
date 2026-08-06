@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>implighter — highlight what matters for your goal</title>
+<meta name="description" content="A Chrome extension that reads the page you're on and highlights the parts that serve your goal, dimming the rest. Summarizes pages and YouTube videos too. Open source, bring your own API key." />
+<link rel="icon" href="assets/icon.png" />
+
+<meta property="og:title" content="implighter" />
+<meta property="og:description" content="Tell it why you're reading. It highlights what serves that goal and dims the rest." />
+<meta property="og:image" content="https://mojtabatajik.github.io/Implighter/assets/scoring.png" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<style>
+  /* Self-contained, matching the extension's own palette. No CDN, no fonts to
+     fetch — the page renders on first paint. */
+  :root {
+    color-scheme: light dark;
+    --bg: #faf9f6;
+    --panel: #ffffff;
+    --fg: #16181d;
+    --muted: #5d6470;
+    --border: #e3e0d8;
+    --accent: #d19c1d;
+    --accent-soft: #fdf3d6;
+    --ink: #1b1e24;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131519;
+      --panel: #1b1e24;
+      --fg: #e9ecf1;
+      --muted: #99a1af;
+      --border: #2b3038;
+      --accent: #e2b23c;
+      --accent-soft: #2a2415;
+      --ink: #0e1013;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: min(1040px, 92vw); margin: 0 auto; }
+  a { color: var(--accent); }
+
+  /* ---- header ---- */
+  header {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    z-index: 10;
+  }
+  header .wrap { display: flex; align-items: center; gap: 12px; }
+  header img { width: 28px; height: 28px; border-radius: 6px; }
+  header .name { font-weight: 700; letter-spacing: .01em; }
+  header nav { margin-left: auto; display: flex; gap: 20px; font-size: 14px; }
+  header nav a { color: var(--muted); text-decoration: none; }
+  header nav a:hover { color: var(--fg); }
+
+  /* ---- hero ---- */
+  .hero { padding: 76px 0 56px; text-align: center; }
+  .hero h1 {
+    margin: 0 0 18px;
+    font-size: clamp(34px, 5.6vw, 56px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p.lede {
+    max-width: 660px; margin: 0 auto 12px;
+    font-size: clamp(16px, 2.1vw, 19px); color: var(--muted);
+  }
+  .goal-demo {
+    display: inline-block; margin: 22px 0 6px; padding: 9px 16px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    font-size: 15px; color: var(--fg);
+  }
+  .goal-demo span { color: var(--muted); }
+
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+  .btn {
+    display: inline-block; padding: 11px 22px; border-radius: 8px;
+    font-weight: 600; font-size: 15px; text-decoration: none;
+    border: 1px solid var(--border); color: var(--fg); background: var(--panel);
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #1a1608; }
+  .btn:hover { transform: translateY(-1px); }
+  .note { margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+  /* ---- shots ---- */
+  section { padding: 56px 0; }
+  section h2 {
+    margin: 0 0 8px; font-size: clamp(22px, 3vw, 28px); letter-spacing: -0.01em;
+  }
+  section .sub { margin: 0 0 30px; color: var(--muted); max-width: 620px; }
+
+  figure { margin: 0 0 44px; }
+  figure img {
+    width: 100%; height: auto; display: block;
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 12px 40px rgb(0 0 0 / 10%);
+  }
+  figcaption { margin-top: 10px; font-size: 14px; color: var(--muted); }
+
+  .pair { display: grid; gap: 18px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 720px) { .pair { grid-template-columns: 1fr; } }
+  .pair .tag {
+    display: inline-block; margin-bottom: 8px; padding: 2px 9px; border-radius: 20px;
+    font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+    background: var(--accent-soft); color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+
+  /* ---- features ---- */
+  .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .card {
+    padding: 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel);
+  }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+  /* ---- steps ---- */
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+  ol.steps li {
+    counter-increment: s; position: relative; padding-left: 46px; margin-bottom: 22px;
+  }
+  ol.steps li::before {
+    content: counter(s);
+    position: absolute; left: 0; top: -1px;
+    width: 30px; height: 30px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--accent); color: #1a1608; font-weight: 700; font-size: 14px;
+  }
+  ol.steps strong { display: block; }
+  ol.steps span { color: var(--muted); font-size: 15px; }
+
+  /* ---- callout ---- */
+  .callout {
+    padding: 24px; border-radius: 10px; background: var(--panel);
+    border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  }
+  .callout p { margin: 0 0 10px; }
+  .callout p:last-child { margin: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+
+  footer {
+    padding: 40px 0 60px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 14px;
+  }
+  footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+  footer a { color: var(--muted); }
+  footer .spacer { margin-left: auto; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <img src="assets/icon.png" alt="" />
+    <span class="name">implighter</span>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="https://github.com/MojtabaTajik/Implighter">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>Read the page you came for,<br />not the one you were <em>given</em>.</h1>
+    <p class="lede">
+      implighter reads the page you're on and highlights the parts that serve <strong>your</strong>
+      goal — dimming or hiding everything else.
+    </p>
+    <div class="goal-demo"><span>Goal:</span> prepare for a system design interview, quick and practical</div>
+    <p class="lede" style="margin-top:16px">
+      The same article gives different results for a different goal, because relevance depends on
+      what you came for. It isn't a generic "important sentences" highlighter.
+    </p>
+
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/MojtabaTajik/Implighter/releases/latest">Download latest release</a>
+      <a class="btn" href="https://github.com/MojtabaTajik/Implighter">View source</a>
+    </div>
+    <p class="note">Free and open source · MIT licence · Bring your own API key</p>
+
+    <figure style="margin-top:44px">
+      <img src="assets/scoring.png" alt="implighter running on an article: the goal is shown in a panel, irrelevant text is dimmed, and relevant passages are highlighted" />
+      <figcaption>Goal in, filtered page out — with a count of what survived.</figcaption>
+    </figure>
+  </div>
+
+  <section id="how">
+    <h2>The noise goes away</h2>
+    <p class="sub">
+      Same article, same scroll position. Everything that doesn't serve the goal is removed —
+      including the scaffolding around it, like comment threads, signup forms and footers.
+    </p>
+
+    <div class="pair">
+      <figure>
+        <span class="tag">Before</span>
+        <img src="assets/before.png" alt="An article before implighter runs, with all of its original content" loading="lazy" />
+      </figure>
+      <figure>
+        <span class="tag">After</span>
+        <img src="assets/after.png" alt="The same article after implighter runs, with relevant passages highlighted" loading="lazy" />
+      </figure>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <strong>Say why you're reading</strong>
+        <span>One line. "Prepare for a system design interview." "Only the trade-offs and numbers."</span>
+      </li>
+      <li>
+        <strong>Every block gets scored against that goal</strong>
+        <span>Not against generic importance. Marketing copy, author bios and comment threads fade out.</span>
+      </li>
+      <li>
+        <strong>Choose how aggressive it is</strong>
+        <span>Dim the noise, hide it outright, or keep only the highlights. Headings always survive, so you never lose your place.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Summaries you can actually use</h2>
+    <p class="sub">
+      An overview, the key points, and anything worth acting on — streamed into a panel you can
+      copy or download as Markdown.
+    </p>
+    <figure>
+      <img src="assets/summary.png" alt="A page summary in a panel over the article, with an overview and key points" loading="lazy" />
+    </figure>
+  </section>
+
+  <section>
+    <h2>Videos, with timestamps you can click</h2>
+    <p class="sub">
+      On a YouTube video, implighter reads the transcript through your own session and cites the
+      moment each point is made. Click a timestamp and the player jumps there.
+    </p>
+    <figure>
+      <img src="assets/video.png" alt="A YouTube video summary with clickable timestamps beside each key point" loading="lazy" />
+    </figure>
+  </section>
+
+  <section id="features">
+    <h2>What else it does</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Removes dead sections whole</h3>
+        <p>A comment thread loses its usernames, timestamps and Reply links too — not just the comments.</p>
+      </div>
+      <div class="card">
+        <h3>Keeps up as the page grows</h3>
+        <p>Content loaded by "Show all comments" or infinite scroll gets scored as it arrives.</p>
+      </div>
+      <div class="card">
+        <h3>Export what survived</h3>
+        <p>Copy the kept text as Markdown — a goal-filtered version of the page for your notes.</p>
+      </div>
+      <div class="card">
+        <h3>Summarize a selection</h3>
+        <p>Right-click any highlighted text to summarize just that, instead of the whole page.</p>
+      </div>
+      <div class="card">
+        <h3>Keyboard shortcuts</h3>
+        <p><code>Ctrl/Cmd+Shift+Y</code> to highlight with your last goal, <code>+U</code> to summarize.</p>
+      </div>
+      <div class="card">
+        <h3>Prompts are yours</h3>
+        <p>Both summary instructions are editable, and the scoring rubric is a readable file in the repo.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>You bring the API key</h2>
+    <div class="callout">
+      <p>
+        There's no server and no subscription. implighter talks directly to an AI provider using
+        your own key, so you pay them for what you use and nothing else — but it does nothing
+        until you add one.
+      </p>
+      <table>
+        <tr><th>Provider</th><th>Notes</th></tr>
+        <tr><td><strong>Groq</strong></td><td>Free tier, no card required. The quickest way to try it.</td></tr>
+        <tr><td><strong>Anthropic</strong></td><td>Sharpest results. The default.</td></tr>
+        <tr><td><strong>OpenAI</strong></td><td>Supported.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>It doesn't watch you browse</h2>
+    <p class="sub">
+      Nothing runs until you invoke it. There's no content script sitting on every page you visit —
+      the extension injects itself only when you click it, and only into that tab.
+    </p>
+    <div class="callout">
+      <p>No analytics. No telemetry. No account.</p>
+      <p>
+        Page text goes to the provider you chose and nowhere else. Your key stays in your browser
+        and is never sent anywhere except the provider that issued it.
+      </p>
+      <p style="font-size:14px;color:var(--muted)">
+        Full detail in the
+        <a href="https://github.com/MojtabaTajik/Implighter/blob/main/PRIVACY.md">privacy policy</a>.
+      </p>
+    </div>
+  </section>
+
+  <section style="text-align:center;padding-bottom:70px">
+    <h2>Try it</h2>
+    <p class="sub" style="margin-left:auto;margin-right:auto">
+      Download the release, unzip it, and load it unpacked at <code>chrome://extensions</code>.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/MojtabaTajik/Implighter/releases/latest">Download latest release</a>
+      <a class="btn" href="https://github.com/MojtabaTajik/Implighter#install">Install guide</a>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>MIT licence</span>
+    <a href="https://github.com/MojtabaTajik/Implighter">Source</a>
+    <a href="https://github.com/MojtabaTajik/Implighter/issues">Report an issue</a>
+    <a href="https://github.com/MojtabaTajik/Implighter/blob/main/docs/architecture.md">How it works</a>
+    <span class="spacer">Built by
+      <a href="https://github.com/MojtabaTajik">Moji Tajik</a> ·
+      <a href="https://www.linkedin.com/in/mojitajik/">LinkedIn</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>
