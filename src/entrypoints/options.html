@@ -5,7 +5,7 @@
     <title>implighter settings</title>
     <link rel="stylesheet" href="popup.css" />
     <style>
-      body { width: 480px; }
+      body { width: 560px; }
       select, input {
         width: 100%; padding: 7px 8px; border: 1px solid var(--border);
         border-radius: 6px; background: transparent; color: inherit; font: inherit;
@@ -17,97 +17,141 @@
       .row { gap: 8px; }
       #saveAnyway { display: none; }
       .ok { color: #2e7d32; }
-      .about {
-        margin-top: 18px; padding-top: 12px;
-        border-top: 1px solid var(--border);
-        color: var(--muted); font-size: 11px;
-      }
+      .about { color: var(--muted); font-size: 12px; line-height: 1.9; }
       .about a { color: var(--muted); text-decoration: underline; }
       .about a:hover { color: var(--accent); }
-      .about .sep { opacity: .5; margin: 0 3px; }
+      .about dt { color: var(--fg); font-weight: 600; margin-top: 12px; }
+      .about dd { margin: 2px 0 0; }
+      /* Tabs mirror the popup, so "where do I change the video prompt" has the
+         same answer in both surfaces. */
+      .tabs { margin-bottom: 16px; }
+      section[role="tabpanel"] { min-height: 320px; }
     </style>
   </head>
   <body>
     <h1>implighter settings</h1>
 
-    <div class="field">
-      <label for="provider">Provider</label>
-      <select id="provider">
-        <option value="anthropic">Anthropic</option>
-        <option value="openai">OpenAI</option>
-        <option value="groq">Groq</option>
-      </select>
-      <p class="hint" id="providerHint"></p>
+    <div class="tabs" role="tablist">
+      <button id="tabProvider" class="tab active" role="tab" aria-selected="true">Provider</button>
+      <button id="tabSummary" class="tab" role="tab" aria-selected="false">Summarize</button>
+      <button id="tabVideo" class="tab" role="tab" aria-selected="false">Video</button>
+      <button id="tabAbout" class="tab" role="tab" aria-selected="false">About</button>
     </div>
 
-    <div class="field">
-      <label for="model">Model</label>
-      <select id="model"></select>
-      <input id="customModel" type="text" placeholder="model id" style="margin-top: 6px; display: none" />
-      <p class="hint">
-        Model ids change faster than this list does. Pick <strong>Other…</strong> and type one
-        if the model you want isn't here.
-      </p>
-    </div>
+    <section id="panelProvider" role="tabpanel">
+      <div class="field">
+        <label for="provider">Provider</label>
+        <select id="provider">
+          <option value="anthropic">Anthropic</option>
+          <option value="openai">OpenAI</option>
+          <option value="groq">Groq</option>
+        </select>
+        <p class="hint" id="providerHint"></p>
+      </div>
 
-    <div class="field" id="keyField">
-      <label for="apiKey">API key</label>
-      <input id="apiKey" type="password" autocomplete="off" />
-      <p class="hint">
-        Keys are kept per provider, so switching the dropdown doesn't discard the other one.
-        Stored unencrypted in this browser profile — anything that can read the profile
-        directory can read the key. Use a key scoped to this purpose and rotate it if the
-        machine is shared. <a id="keyLink" href="#" target="_blank" rel="noreferrer">Get a key</a>
-      </p>
-    </div>
+      <div class="field">
+        <label for="model">Model</label>
+        <select id="model"></select>
+        <input id="customModel" type="text" placeholder="model id" style="margin-top: 6px; display: none" />
+        <p class="hint">
+          Model ids change faster than this list does. Pick <strong>Other…</strong> and type one
+          if the model you want isn't here.
+        </p>
+      </div>
 
-    <div class="field">
-      <label for="summaryPrompt">Summary instructions <span class="muted">— advanced</span></label>
-      <textarea id="summaryPrompt" rows="10" style="width: 100%; resize: vertical"></textarea>
-      <p class="hint">
-        The standing instruction for every summary: format, length and tone. You don't need to
-        touch this — the popup's <strong>"Anything to focus on?"</strong> box steers an individual
-        summary, and is added on top of whatever is here. Edit this only to change how summaries
-        are shaped every time.
-        <br />
-        Saved as you type, independently of the provider settings — changing wording doesn't
-        require re-verifying a key.
-        <button id="resetPrompt" style="width: auto; padding: 2px 8px; margin-top: 6px">Reset to default</button>
-      </p>
-    </div>
+      <div class="field" id="keyField">
+        <label for="apiKey">API key</label>
+        <input id="apiKey" type="password" autocomplete="off" />
+        <p class="hint">
+          Keys are kept per provider, so switching the dropdown doesn't discard the other one.
+          Stored unencrypted in this browser profile — anything that can read the profile
+          directory can read the key. Use a key scoped to this purpose and rotate it if the
+          machine is shared. <a id="keyLink" href="#" target="_blank" rel="noreferrer">Get a key</a>
+        </p>
+      </div>
 
-    <div class="field">
-      <label for="transcriptPrompt">Video summary instructions <span class="muted">— advanced</span></label>
-      <textarea id="transcriptPrompt" rows="10" style="width: 100%; resize: vertical"></textarea>
-      <p class="hint">
-        Used instead of the above when summarizing a YouTube transcript. A transcript is a
-        different medium — spoken, unstructured, and carrying timestamps an article never has —
-        so one instruction cannot serve both without being vague enough to serve neither.
-        Timestamps it cites become clickable in the summary.
-        <br />
-        <button id="resetTranscriptPrompt" style="width: auto; padding: 2px 8px; margin-top: 6px">Reset to default</button>
-      </p>
-    </div>
+      <!-- Save lives here, and only here. The prompt tabs autosave, so keeping the
+           verify button on this panel makes plain that it concerns provider
+           settings rather than everything on the page. -->
+      <div class="row">
+        <button id="save" class="primary">Verify &amp; save</button>
+        <button id="saveAnyway">Save without verifying</button>
+      </div>
+    </section>
 
-    <div class="row">
-      <button id="save" class="primary">Verify &amp; save</button>
-      <button id="saveAnyway">Save without verifying</button>
-    </div>
+    <section id="panelSummary" role="tabpanel" hidden>
+      <div class="field">
+        <label for="summaryPrompt">Instructions for summarizing a page</label>
+        <textarea id="summaryPrompt" rows="14" style="width: 100%; resize: vertical"></textarea>
+        <p class="hint">
+          The standing instruction for every page summary: format, length and tone. You don't
+          need to touch this — the popup's <strong>"Anything to focus on?"</strong> box steers an
+          individual summary and is added on top of whatever is here. Edit this only to change
+          how summaries are shaped every time.
+          <br />
+          Saved as you type. Changing wording never requires re-verifying a key.
+        </p>
+        <button id="resetPrompt" style="width: auto; padding: 4px 10px; margin-top: 8px">
+          Reset to default
+        </button>
+      </div>
+    </section>
+
+    <section id="panelVideo" role="tabpanel" hidden>
+      <div class="field">
+        <label for="transcriptPrompt">Instructions for summarizing a video</label>
+        <textarea id="transcriptPrompt" rows="14" style="width: 100%; resize: vertical"></textarea>
+        <p class="hint">
+          Used instead of the page instructions when summarizing a YouTube transcript. A
+          transcript is a different medium — spoken, unstructured, and carrying timestamps an
+          article never has — so one instruction cannot serve both without being vague enough to
+          serve neither. Timestamps it cites become clickable and seek the player.
+          <br />
+          Saved as you type.
+        </p>
+        <button id="resetTranscriptPrompt" style="width: auto; padding: 4px 10px; margin-top: 8px">
+          Reset to default
+        </button>
+      </div>
+    </section>
+
+    <section id="panelAbout" role="tabpanel" hidden>
+      <dl class="about">
+        <dt>implighter <span id="version"></span></dt>
+        <dd>
+          Give it a goal and it dims the noise on a page, highlights what matters, and
+          summarizes pages and videos on request.
+        </dd>
+
+        <dt>Built by</dt>
+        <dd>
+          Moji Tajik —
+          <a href="https://github.com/MojtabaTajik" target="_blank" rel="noreferrer noopener">GitHub</a>
+          ·
+          <a href="https://www.linkedin.com/in/mojitajik/" target="_blank" rel="noreferrer noopener">LinkedIn</a>
+        </dd>
+
+        <dt>Source and issues</dt>
+        <dd>
+          <a href="https://github.com/MojtabaTajik/Implighter" target="_blank" rel="noreferrer noopener">
+            github.com/MojtabaTajik/Implighter
+          </a>
+          ·
+          <a href="https://github.com/MojtabaTajik/Implighter/issues" target="_blank" rel="noreferrer noopener">
+            Report an issue
+          </a>
+        </dd>
+
+        <dt>Your data</dt>
+        <dd>
+          Page text is sent to the provider you choose, and nowhere else. There is no server
+          in between. Your API key stays in this browser profile and is never transmitted
+          anywhere except that provider.
+        </dd>
+      </dl>
+    </section>
+
     <p id="status" class="status" role="status"></p>
-
-    <footer class="about">
-      <span id="version"></span>
-      <span class="sep">·</span>
-      Built by Moji Tajik
-      <span class="sep">·</span>
-      <a href="https://github.com/MojtabaTajik/Implighter" target="_blank" rel="noreferrer noopener">
-        GitHub
-      </a>
-      <span class="sep">·</span>
-      <a href="https://www.linkedin.com/in/mojitajik/" target="_blank" rel="noreferrer noopener">
-        LinkedIn
-      </a>
-    </footer>
 
     <script type="module" src="options.js"></script>
   </body>

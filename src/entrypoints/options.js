@@ -22,6 +22,31 @@ const transcriptPromptInput = document.getElementById("transcriptPrompt");
 const resetTranscriptPromptButton = document.getElementById("resetTranscriptPrompt");
 const statusEl = document.getElementById("status");
 
+// Same tab pattern as the popup, so "where do I change the video prompt" has the
+// same answer on both surfaces.
+const TABS = {
+  provider: ["tabProvider", "panelProvider"],
+  summary: ["tabSummary", "panelSummary"],
+  video: ["tabVideo", "panelVideo"],
+  about: ["tabAbout", "panelAbout"]
+};
+
+function showTab(name) {
+  for (const [key, [tabId, panelId]] of Object.entries(TABS)) {
+    const active = key === name;
+    const tab = document.getElementById(tabId);
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+    document.getElementById(panelId).hidden = !active;
+  }
+  // Status messages belong to the panel that produced them.
+  setStatus("");
+}
+
+for (const [key, [tabId]] of Object.entries(TABS)) {
+  document.getElementById(tabId).addEventListener("click", () => showTab(key));
+}
+
 const CACHE_NOTE = {
   explicit:
     "Caches the rubric explicitly. The rubric is ~820 tokens and the minimum cacheable " +
