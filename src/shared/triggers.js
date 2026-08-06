@@ -38,7 +38,7 @@ async function send(tabId, message) {
 // last goal; with none stored, open the popup so the user can supply it rather
 // than silently doing nothing.
 async function triggerHighlight(tabId) {
-  const { lastGoal, collapse } = await chrome.storage.local.get(["lastGoal", "collapse"]);
+  const { lastGoal } = await chrome.storage.local.get(["lastGoal"]);
   if (!lastGoal) {
     try {
       await chrome.action.openPopup();
@@ -47,7 +47,7 @@ async function triggerHighlight(tabId) {
     }
     return;
   }
-  await send(tabId, { type: MSG.RUN, goal: lastGoal, collapse: !!collapse });
+  await send(tabId, { type: MSG.RUN, goal: lastGoal });
 }
 
 async function triggerSummarize(tabId, { selectionOnly = false, kind = "page" } = {}) {

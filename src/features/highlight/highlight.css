@@ -24,9 +24,16 @@ html.implighter-active .implighter-pending {
   transition: opacity 0.18s ease;
 }
 
-/* Collapse mode: dimmed blocks stop taking vertical space, so a long page
-   actually gets short instead of just getting faint. */
-html.implighter-active.implighter-collapse .implighter-dim {
+/* Three display modes, set by a class on <html>.
+   dim  — noise fades but keeps its place (default)
+   hide — noise stops taking vertical space, so a long page actually gets short
+   only — supporting material goes too, leaving just the highlights */
+html.implighter-active.implighter-mode-hide .implighter-dim,
+html.implighter-active.implighter-mode-only .implighter-dim {
+  display: none !important;
+}
+
+html.implighter-active.implighter-mode-only .implighter-support {
   display: none !important;
 }
 

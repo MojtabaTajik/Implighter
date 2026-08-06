@@ -8,7 +8,6 @@ const copyKeptButton = document.getElementById("copyKept");
 const videoFocusInput = document.getElementById("videoFocus");
 const runButton = document.getElementById("run");
 const clearButton = document.getElementById("clear");
-const collapseInput = document.getElementById("collapse");
 const statusEl = document.getElementById("status");
 
 const setupEl = document.getElementById("setup");
@@ -85,8 +84,8 @@ chrome.runtime.onMessage.addListener((msg) => {
 // Gate the whole UI on having a key. Otherwise a new user's first action is a
 // button that fails with an error naming a provider they have not met yet.
 chrome.storage.local
-  .get(["lastGoal", "lastFocus", "lastTab", "collapse", "provider", "keys", "apiKey", "recentGoals", "lastVideoFocus"])
-  .then(({ lastGoal, lastFocus, lastTab, collapse, provider, keys, apiKey, recentGoals, lastVideoFocus }) => {
+  .get(["lastGoal", "lastFocus", "lastTab", "provider", "keys", "apiKey", "recentGoals", "lastVideoFocus"])
+  .then(({ lastGoal, lastFocus, lastTab, provider, keys, apiKey, recentGoals, lastVideoFocus }) => {
     const configured = Boolean((keys || {})[provider || "anthropic"] || apiKey);
     setupEl.hidden = configured;
     mainEl.hidden = !configured;
@@ -96,7 +95,6 @@ chrome.storage.local
     if (lastFocus) focusInput.value = lastFocus;
     if (lastVideoFocus) videoFocusInput.value = lastVideoFocus;
     renderRecentGoals(recentGoals);
-    collapseInput.checked = !!collapse;
     showTab(lastTab === "summarize" ? "summarize" : "highlight");
   });
 
@@ -174,16 +172,6 @@ recentGoalsSelect.addEventListener("change", () => {
   goalInput.focus();
 });
 
-// Toggling applies live — no need to re-score a page that's already painted.
-collapseInput.addEventListener("change", async () => {
-  await chrome.storage.local.set({ collapse: collapseInput.checked });
-  try {
-    await sendToTab({ type: MSG.COLLAPSE, collapse: collapseInput.checked });
-  } catch {
-    // Nothing painted on this tab yet; the setting applies on the next run.
-  }
-});
-
 async function sendToTab(message) {
   const tab = await activeTab();
   if (!tab?.id) throw new Error("No active tab.");
@@ -210,11 +198,9 @@ runButton.addEventListener("click", async () => {
   setStatus("Reading the page…");
 
   try {
-    const result = await sendToTab({
-      type: MSG.RUN,
-      goal,
-      collapse: collapseInput.checked
-    });
+    // The display mode is read from storage by the content script, so it is not
+    // passed here — one source of truth, and it applies live to painted tabs.
+    const result = await sendToTab({ type: MSG.RUN, goal });
     if (result?.ok) {
       const failed = result.failed
         ? ` ${result.failed} chunk(s) failed and were left alone.`
@@ -282,6 +268,11 @@ copyKeptButton.addEventListener("click", async () => {
   } catch (err) {
     setStatus(String(err.message || err), true);
   }
+});
+
+document.getElementById("displayModeLink").addEventListener("click", (event) => {
+  event.preventDefault();
+  chrome.runtime.openOptionsPage();
 });
 
 document.getElementById("options").addEventListener("click", (event) => {

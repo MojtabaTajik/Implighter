@@ -6,7 +6,6 @@ export const MSG = {
   RUN: "implighter:run",
   CLEAR: "implighter:clear",
   STATE: "implighter:state",
-  COLLAPSE: "implighter:collapse",
   CLASSIFY: "implighter:classify",
   STATUS: "implighter:status",
   EXPORT_KEPT: "implighter:export-kept",

@@ -242,7 +242,10 @@ function clearHighlights() {
   overlayHide();
   reportBadge("");
   session = null;
-  document.documentElement.classList.remove("implighter-active", "implighter-collapse");
+  document.documentElement.classList.remove(
+    "implighter-active",
+    ...Object.values(MODE_CLASS).filter(Boolean)
+  );
   for (const el of document.querySelectorAll(
     `.${CLASS.core}, .${CLASS.support}, .${CLASS.dim}, .${CLASS.pending}, [${HANDLED_ATTR}]`
   )) {
@@ -378,14 +381,14 @@ function exportKept() {
   ].join("\n");
 }
 
-async function run(goal, collapse) {
+async function run(goal) {
   if (running) return { ok: false, error: "Already running on this page." };
   running = true;
 
   try {
     clearHighlights();
-    // Must come after clearHighlights() — that call resets both state classes.
-    setCollapse(collapse);
+    // Must come after clearHighlights() — that call resets the state classes.
+    applyDisplayMode(await readDisplayMode());
     overlayShow({ mode: "full", goal, detail: "Reading the page…" });
 
     const blocks = collectBlocks({ budget: MAX_BLOCKS, maxChars: MAX_BLOCK_CHARS, skip: isTagged });
@@ -506,20 +509,36 @@ async function incrementalPass() {
   }
 }
 
-function setCollapse(on) {
-  document.documentElement.classList.toggle("implighter-collapse", !!on);
+const MODE_CLASS = {
+  dim: null,
+  hide: "implighter-mode-hide",
+  only: "implighter-mode-only"
+};
+
+// Read straight from storage rather than passed in a message: the setting lives
+// in Settings, which is its own tab and cannot message the page the user is
+// actually looking at. Subscribing here means a change applies live to every
+// painted tab at once.
+async function readDisplayMode() {
+  const { displayMode, collapse } = await chrome.storage.local.get(["displayMode", "collapse"]);
+  // Migration from the popup checkbox this replaced.
+  return displayMode || (collapse ? "hide" : "dim");
+}
+
+function applyDisplayMode(mode) {
+  const root = document.documentElement;
+  for (const cls of Object.values(MODE_CLASS)) {
+    if (cls) root.classList.remove(cls);
+  }
+  const cls = MODE_CLASS[mode];
+  if (cls) root.classList.add(cls);
 }
 
 export function initHighlight() {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === MSG.RUN) {
-      run(msg.goal, msg.collapse).then(sendResponse);
+      run(msg.goal).then(sendResponse);
       return true;
-    }
-    if (msg?.type === MSG.COLLAPSE) {
-      setCollapse(msg.collapse);
-      sendResponse({ ok: true });
-      return false;
     }
     if (msg?.type === MSG.CLEAR) {
       clearHighlights();
@@ -546,4 +565,11 @@ export function initHighlight() {
   // was in this tab before is stale. Clearing here ties badge lifetime to exactly
   // the same lifecycle as the highlights themselves.
   reportBadge("");
+
+  // Live-apply a mode change to an already-painted page, from whichever tab the
+  // Settings page happens to be open in.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes.displayMode || !session) return;
+    applyDisplayMode(changes.displayMode.newValue || "dim");
+  });
 }

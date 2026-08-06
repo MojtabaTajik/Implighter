@@ -22,6 +22,9 @@
       .about a:hover { color: var(--accent); }
       .about dt { color: var(--fg); font-weight: 600; margin-top: 12px; }
       .about dd { margin: 2px 0 0; }
+      .tiers { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+      .tiers dt { color: var(--fg); font-weight: 600; margin-top: 8px; }
+      .tiers dd { margin: 1px 0 0; line-height: 1.5; }
       /* Tabs mirror the popup, so "where do I change the video prompt" has the
          same answer in both surfaces. */
       .tabs { margin-bottom: 16px; }
@@ -33,6 +36,7 @@
 
     <div class="tabs" role="tablist">
       <button id="tabProvider" class="tab active" role="tab" aria-selected="true">Provider</button>
+      <button id="tabHighlightSettings" class="tab" role="tab" aria-selected="false">Highlight</button>
       <button id="tabSummary" class="tab" role="tab" aria-selected="false">Summarize</button>
       <button id="tabVideo" class="tab" role="tab" aria-selected="false">Video</button>
       <button id="tabAbout" class="tab" role="tab" aria-selected="false">About</button>
@@ -76,6 +80,37 @@
       <div class="row">
         <button id="save" class="primary">Verify &amp; save</button>
         <button id="saveAnyway">Save without verifying</button>
+      </div>
+    </section>
+
+    <section id="panelHighlightSettings" role="tabpanel" hidden>
+      <div class="field">
+        <label for="displayMode">What happens to text that isn't a highlight</label>
+        <select id="displayMode">
+          <option value="dim">Dim it — noise fades but keeps its place</option>
+          <option value="hide">Hide it — noise is removed, supporting text stays</option>
+          <option value="only">Only highlights — supporting text is removed too</option>
+        </select>
+        <p class="hint">
+          Every block gets one of three verdicts, which is why some text stays plain rather than
+          highlighted or hidden:
+        </p>
+        <dl class="tiers">
+          <dt>Core</dt>
+          <dd>What you came for. Always highlighted.</dd>
+          <dt>Supporting</dt>
+          <dd>
+            Section headings, the sentence that sets up a core point, a caveat on a core claim.
+            Kept plain in the first two modes — hiding it leaves highlights stranded with no
+            heading above them and no premise behind them. <strong>Only highlights</strong>
+            removes it anyway, which reads as fragments but skims fastest.
+          </dd>
+          <dt>Noise</dt>
+          <dd>Marketing, bios, newsletter pitches, comment threads. Dimmed or hidden.</dd>
+        </dl>
+        <p class="hint">
+          Applies immediately to any page already highlighted — no need to run it again.
+        </p>
       </div>
     </section>
 

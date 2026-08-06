@@ -20,12 +20,14 @@ const summaryPromptInput = document.getElementById("summaryPrompt");
 const resetPromptButton = document.getElementById("resetPrompt");
 const transcriptPromptInput = document.getElementById("transcriptPrompt");
 const resetTranscriptPromptButton = document.getElementById("resetTranscriptPrompt");
+const displayModeSelect = document.getElementById("displayMode");
 const statusEl = document.getElementById("status");
 
 // Same tab pattern as the popup, so "where do I change the video prompt" has the
 // same answer on both surfaces.
 const TABS = {
   provider: ["tabProvider", "panelProvider"],
+  highlight: ["tabHighlightSettings", "panelHighlightSettings"],
   summary: ["tabSummary", "panelSummary"],
   video: ["tabVideo", "panelVideo"],
   about: ["tabAbout", "panelAbout"]
@@ -117,7 +119,9 @@ async function load() {
     "keys",
     "apiKey",
     "summaryPrompt",
-    "transcriptPrompt"
+    "transcriptPrompt",
+    "displayMode",
+    "collapse"
   ]);
   keys = stored.keys || {};
   // Migration from the single-provider build, which stored one bare Anthropic key.
@@ -129,6 +133,8 @@ async function load() {
 
   summaryPromptInput.value = stored.summaryPrompt || DEFAULT_SUMMARY_PROMPT;
   transcriptPromptInput.value = stored.transcriptPrompt || DEFAULT_TRANSCRIPT_PROMPT;
+  // Migration from the popup checkbox this dropdown replaced.
+  displayModeSelect.value = stored.displayMode || (stored.collapse ? "hide" : "dim");
 }
 
 // Saved on edit rather than behind the verify button: the prompt has nothing to
@@ -152,6 +158,13 @@ function resetTo(button, input, value, save, label) {
     setStatus(`${label} reset to default.`, "ok");
   });
 }
+
+// Content scripts watch storage directly, so saving is all it takes to repaint
+// every already-highlighted tab.
+displayModeSelect.addEventListener("change", async () => {
+  await chrome.storage.local.set({ displayMode: displayModeSelect.value });
+  setStatus("Display mode saved — applied to any page already highlighted.", "ok");
+});
 
 autosave(summaryPromptInput, saveSummaryPrompt, "Summary instructions");
 autosave(transcriptPromptInput, saveTranscriptPrompt, "Video summary instructions");
