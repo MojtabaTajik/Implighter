@@ -274,11 +274,12 @@ function paint(scores) {
     const el = blockIndex.get(id);
     if (!el) continue;
 
-    // The page title is never noise, whatever the goal. Scoring it 0 is
-    // defensible in the abstract — a title rarely advances a specific goal — but
-    // hiding it leaves the reader looking at a page that starts mid-thought with
-    // nothing saying what it is.
-    if (el.tagName === "H1" && score === 0) score = 1;
+    // Headings are the page's skeleton. Scoring one 0 is defensible in the
+    // abstract — a heading rarely advances a goal by itself — but hiding it while
+    // keeping the section beneath it leaves prose with nothing saying what it is,
+    // and hiding the h1 leaves the whole page starting mid-thought. A redundant
+    // heading costs a line; a missing one costs the reader their place.
+    if (/^H[1-6]$/.test(el.tagName) && score === 0) score = 1;
     el.classList.remove(CLASS.pending, CLASS.core, CLASS.support, CLASS.dim);
     if (score === 2) el.classList.add(CLASS.core);
     else if (score === 1) el.classList.add(CLASS.support);
