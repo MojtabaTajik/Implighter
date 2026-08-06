@@ -37,6 +37,20 @@ html.implighter-active.implighter-mode-only .implighter-support {
   display: none !important;
 }
 
+/* Site furniture is skipped at extraction time — it is reliably noise and not
+   worth paying tokens to score. But skipped means unscored, which means nothing
+   ever hid it: strip an article's noise and a footer link grid is suddenly a
+   fifth of the remaining page. Removing it here is deterministic and free.
+   Nav stays: it is small, and it is how you leave the page. */
+html.implighter-active.implighter-mode-hide footer,
+html.implighter-active.implighter-mode-hide aside,
+html.implighter-active.implighter-mode-hide [role="contentinfo"],
+html.implighter-active.implighter-mode-only footer,
+html.implighter-active.implighter-mode-only aside,
+html.implighter-active.implighter-mode-only [role="contentinfo"] {
+  display: none !important;
+}
+
 @media (prefers-color-scheme: dark) {
   html.implighter-active .implighter-core {
     background: rgba(255, 213, 74, 0.18);
