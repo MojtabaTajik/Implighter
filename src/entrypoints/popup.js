@@ -30,7 +30,11 @@ const tabs = {
   }
 };
 
-function showTab(name) {
+// Set as soon as the user touches a tab, so the capability probe — which resolves
+// a moment later — never yanks them off a panel they just chose.
+let userChoseTab = false;
+
+function showTab(name, { persist = true } = {}) {
   if (tabs[name]?.tab.hidden) name = "highlight";
   for (const [key, entry] of Object.entries(tabs)) {
     const active = key === name;
@@ -38,13 +42,18 @@ function showTab(name) {
     entry.tab.setAttribute("aria-selected", String(active));
     entry.panel.hidden = !active;
   }
-  chrome.storage.local.set({ lastTab: name });
+  // Auto-selecting Video on a watch page is context, not preference — persisting
+  // it would make every later page open on a tab the user never picked.
+  if (persist) chrome.storage.local.set({ lastTab: name });
   tabs[name].focus();
 }
 
-tabs.highlight.tab.addEventListener("click", () => showTab("highlight"));
-tabs.summarize.tab.addEventListener("click", () => showTab("summarize"));
-tabs.transcript.tab.addEventListener("click", () => showTab("transcript"));
+for (const [name, entry] of Object.entries(tabs)) {
+  entry.tab.addEventListener("click", () => {
+    userChoseTab = true;
+    showTab(name);
+  });
+}
 
 document.getElementById("setupOpen").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
@@ -115,7 +124,12 @@ chrome.storage.local
 (async () => {
   try {
     const caps = await sendToTab({ type: MSG.CAPABILITIES });
-    if (caps?.transcript) tabs.transcript.tab.hidden = false;
+    if (!caps?.transcript) return;
+
+    tabs.transcript.tab.hidden = false;
+    // On a watch page the video is what you are looking at, so open on it —
+    // unless the user already picked something else while this was resolving.
+    if (!userChoseTab) showTab("transcript", { persist: false });
   } catch {
     // No content script here; the tab simply stays hidden.
   }
