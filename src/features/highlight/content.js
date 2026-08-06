@@ -237,10 +237,46 @@ function flattenNestedDim() {
   }
 }
 
+// A heading whose entire section has been removed is not structure, it is a
+// label for nothing — "Conclusion" with no conclusion under it. Keeping headings
+// buys the reader their place; keeping empty ones just looks broken.
+//
+// Deliberately measured from rendered visibility rather than from verdicts, so it
+// works the same in every display mode without knowing which one is active.
+function hideOrphanHeadings() {
+  const scored = Array.from(document.querySelectorAll(`[${HANDLED_ATTR}]`));
+  const headings = scored.filter((el) => /^H[1-6]$/.test(el.tagName));
+
+  for (const heading of headings) {
+    const level = Number(heading.tagName[1]);
+    const start = scored.indexOf(heading);
+    let hasVisibleContent = false;
+
+    for (let i = start + 1; i < scored.length; i++) {
+      const el = scored[i];
+      // Stop at the next heading of the same or higher rank — that is where this
+      // section ends.
+      const elLevel = /^H([1-6])$/.exec(el.tagName)?.[1];
+      if (elLevel && Number(elLevel) <= level) break;
+      if (el.getClientRects().length > 0) {
+        hasVisibleContent = true;
+        break;
+      }
+    }
+
+    if (!hasVisibleContent) {
+      heading.classList.remove(CLASS.core, CLASS.support);
+      heading.classList.add(CLASS.dim);
+    }
+  }
+}
+
 function finalizePass(blocks) {
   resetPainting();
   paintMedia(blocks);
-  return rollUpDeadSections();
+  const rolled = rollUpDeadSections();
+  hideOrphanHeadings();
+  return rolled;
 }
 
 function clearHighlights() {
