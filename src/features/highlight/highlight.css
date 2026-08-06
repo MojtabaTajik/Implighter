@@ -33,7 +33,12 @@ html.implighter-active.implighter-mode-only .implighter-dim {
   display: none !important;
 }
 
-html.implighter-active.implighter-mode-only .implighter-support {
+/* Headings survive even here. "Only highlights" means only the substance, but
+   structure is not substance — without headings the result is a soup of
+   fragments with nothing saying where you are, and the page title disappears
+   entirely. A heading costs one line and buys the reader their place. */
+html.implighter-active.implighter-mode-only
+  .implighter-support:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
   display: none !important;
 }
 
