@@ -41,12 +41,16 @@ html.implighter-active.implighter-mode-only .implighter-support {
    worth paying tokens to score. But skipped means unscored, which means nothing
    ever hid it: strip an article's noise and a footer link grid is suddenly a
    fifth of the remaining page. Removing it here is deterministic and free.
-   Nav stays: it is small, and it is how you leave the page. */
+   Nav stays: it is small, and it is how you leave the page. Forms go with the
+   rest — a newsletter signup is the archetypal thing this exists to remove, and
+   in hide mode the reader has asked for exactly that. */
 html.implighter-active.implighter-mode-hide footer,
 html.implighter-active.implighter-mode-hide aside,
+html.implighter-active.implighter-mode-hide form,
 html.implighter-active.implighter-mode-hide [role="contentinfo"],
 html.implighter-active.implighter-mode-only footer,
 html.implighter-active.implighter-mode-only aside,
+html.implighter-active.implighter-mode-only form,
 html.implighter-active.implighter-mode-only [role="contentinfo"] {
   display: none !important;
 }

@@ -264,9 +264,15 @@ function markPending(blocks) {
 }
 
 function paint(scores) {
-  for (const { id, score } of scores) {
+  for (let { id, score } of scores) {
     const el = blockIndex.get(id);
     if (!el) continue;
+
+    // The page title is never noise, whatever the goal. Scoring it 0 is
+    // defensible in the abstract — a title rarely advances a specific goal — but
+    // hiding it leaves the reader looking at a page that starts mid-thought with
+    // nothing saying what it is.
+    if (el.tagName === "H1" && score === 0) score = 1;
     el.classList.remove(CLASS.pending, CLASS.core, CLASS.support, CLASS.dim);
     if (score === 2) el.classList.add(CLASS.core);
     else if (score === 1) el.classList.add(CLASS.support);
